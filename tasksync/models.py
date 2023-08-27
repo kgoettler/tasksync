@@ -9,6 +9,7 @@ from todoist_api_python.models import Task, Due
 from zoneinfo import ZoneInfo
 import tzlocal
 
+TODOIST_DUE_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 class TaskwarriorStatus(Enum):
@@ -50,7 +51,17 @@ class TaskwarriorDatetime(datetime.datetime):
     @classmethod 
     def from_todoist(cls, value):
         if isinstance(value, Due):
-            return cls.now()
+            if value.datetime is not None:
+                return (cls
+                        .strptime(value.datetime, TODOIST_DUE_DATETIME_FORMAT)
+                        .replace(tzinfo=ZoneInfo('UTC'))
+                )
+            else:
+                return (cls
+                        .strptime(value.date, '%Y-%m-%d')
+                        .replace(tzinfo=tzlocal.get_localzone().unwrap_shim())
+                        .astimezone(ZoneInfo('UTC'))
+                )
         elif isinstance(value, str):
             return cls.strptime(value, TODOIST_DATETIME_FORMAT)
         
@@ -107,7 +118,7 @@ class TaskwarriorTask:
         )
         if task.due is not None:
             # TODO: Support datetimes
-            kwargs['due'] = TaskwarriorDatetime.strptime(task.due.date,)
+            kwargs['due'] = TaskwarriorDatetime.from_todoist(task.due)
         if task.project_id != 'Inbox':
             kwargs['project'] = task.project_id
         if len(task.labels) > 0:
