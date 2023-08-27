@@ -62,6 +62,3 @@ def get_todoist(due_datetime=False):
             'timezone': 'America/New_York'
         })
     return todoist
-
-def get_task_and_todoist(**kwargs):
-    return task(**kwargs), todoist(**kwargs)

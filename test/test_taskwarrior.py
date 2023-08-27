@@ -5,7 +5,7 @@ import pytest
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
 from tasksync.models import TaskwarriorTask, TaskwarriorDatetime, TaskwarriorPriority, TaskwarriorStatus
 
-from test_data import get_task, get_todoist, get_task_and_todoist
+from test_data import get_task, get_todoist
 
 class TestTaskwarriorWithDueDatetime:
 

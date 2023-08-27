@@ -5,15 +5,12 @@ from tasksync.models import TaskwarriorTask, TaskwarriorStatus
 from todoist_api_python.api import TodoistAPI
 import tzlocal
 
-def on_add(task_json_input) -> tuple[str, str]:
+def on_add(task_json_input, api) -> tuple[str, str]:
     # Preallocate output
     feedback = ''
 
     # Read input
     task = TaskwarriorTask.from_taskwarrior(json.loads(task_json_input))
-
-    # Connect to API    
-    api = TodoistAPI(os.environ['TODOIST_API_KEY'])
 
     # Create task
     res = api.add_task(**task.to_todoist_api_kwargs())
@@ -23,7 +20,7 @@ def on_add(task_json_input) -> tuple[str, str]:
     return (task.to_json(), feedback)
 
 
-def on_modify(task_json_input, task_json_output) -> tuple[str, str]:
+def on_modify(task_json_input, task_json_output, api) -> tuple[str, str]:
     # Preallocate output
     feedback = ''
 
@@ -31,9 +28,6 @@ def on_modify(task_json_input, task_json_output) -> tuple[str, str]:
     task_input = TaskwarriorTask.from_taskwarrior(json.loads(task_json_input))
     task_output = TaskwarriorTask.from_taskwarrior(json.loads(task_json_output))
     
-    # Connect to API 
-    api = TodoistAPI(os.environ['TODOIST_API_KEY'])
-
     # Only perform API calls if there's something worth updating
     # - Update required if task was deleted
     # - Update required if any supported fields were modified
@@ -49,6 +43,7 @@ def on_modify(task_json_input, task_json_output) -> tuple[str, str]:
             kwargs = task_output.to_todoist_api_kwargs()
             res = api.add_task(**kwargs)
             task_output.todoist = res.id
+            task_output.timezone = tzlocal.get_localzone_name()
             feedback += 'Todoist: task created (did not exist)'
     else:
         feedback += 'Todoist: update not required'
