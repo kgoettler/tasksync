@@ -38,7 +38,7 @@ def on_modify(task_json_input, task_json_output) -> tuple[str, str]:
     # - Update required if task was deleted
     # - Update required if any supported fields were modified
     # - No update required otherwise
-    if task_output.status == TaskwarriorStatus.DELETED:
+    if task_output.status == TaskwarriorStatus.DELETED and task_output.todoist:
         res = api.delete_task(task_id=task_output.todoist)
         feedback += 'Todoist: task deleted'
     elif check_supported_todoist_fields(task_input, task_output):
