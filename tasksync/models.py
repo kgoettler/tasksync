@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from typing import Optional
 
 from todoist_api_python.models import Task, Due
+from zoneinfo import ZoneInfo
+import tzlocal
+
+TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 class TaskwarriorStatus(Enum):
     DELETED = 0
@@ -26,15 +30,6 @@ class TaskwarriorPriority(Enum):
         return self.name
     
     @classmethod
-    def from_str(cls, value):
-        if value not in cls.__members__:
-            raise ValueError('\'{}\' is not a valid str value for {}'.format(
-                value,
-                cls.__name__,
-            ))
-        return cls[value]
-
-    @classmethod
     def from_todoist(cls, value):
         # Todoist priorities differ by 1
         return cls(value-1)
@@ -50,14 +45,14 @@ class TaskwarriorDatetime(datetime.datetime):
     
     @classmethod
     def from_taskwarrior(cls, value):
-        return cls.strptime(value, '%Y%m%dT%H%M%SZ')
+        return cls.strptime(value, '%Y%m%dT%H%M%SZ').replace(tzinfo=ZoneInfo('UTC'))
 
     @classmethod 
     def from_todoist(cls, value):
         if isinstance(value, Due):
             return cls.now()
         elif isinstance(value, str):
-            return cls.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ')
+            return cls.strptime(value, TODOIST_DATETIME_FORMAT)
         
 
 @dataclass
@@ -77,7 +72,10 @@ class TaskwarriorTask:
     tags : list[str] = ()
     priority: Optional[TaskwarriorPriority] = None
     urgency : int = 1
+    
+    # UDAs
     todoist : Optional[int] = None
+    timezone : Optional[str] = tzlocal.get_localzone_name()
 
     @classmethod
     def from_taskwarrior(cls, data):
@@ -88,7 +86,7 @@ class TaskwarriorTask:
             'status': TaskwarriorStatus[data['status'].upper()],
         }
         # Optional includes
-        for key in ['project', 'tags', 'urgency', 'todoist']:
+        for key in ['id', 'project', 'tags', 'urgency', 'todoist']:
             if key in data:
                 kwargs[key] = data[key]
         # Cast datetimes
@@ -125,27 +123,24 @@ class TaskwarriorTask:
                 setattr(self, key, value)
         return
 
-    def to_dict(self) -> dict:
-        out = {
-            'id': self.id,
-            'description': self.description,
-            'uuid': str(self.uuid),
-            'entry': str(self.entry),
-            'status': str(self.status),
-            'urgency': self.urgency,
-        }
-        for attr in ['start', 'end', 'due', 'until', 'wait', 'project', 'priority']:
-            if value := getattr(self, attr):
-                if value is not None:
-                    out[attr] = str(value)
-        if self.todoist is not None:
-            out['todoist'] = self.todoist
+    def to_dict(self, exclude_id=False) -> dict:
+        out = {}
+        if not exclude_id:
+            out['id'] = self.id
+        for attr in ['description', 'uuid', 'entry', 'status', 'start', 'end', 'due', 'until', 'wait', 'project', 'priority']:
+            value = getattr(self, attr)
+            if value is not None:
+                out[attr] = str(value)
+        for attr in ['urgency', 'todoist', 'timezone']:
+            value = getattr(self, attr)
+            if value is not None:
+                out[attr] = value
         if len(self.tags) > 0:
             out['tags'] = self.tags
         return out
     
-    def to_json(self, **kwargs) -> str:
-        return json.dumps(self.to_dict(), **kwargs)
+    def to_json(self, exclude_id=False, **kwargs) -> str:
+        return json.dumps(self.to_dict(exclude_id=exclude_id), **kwargs)
     
     def to_todoist_api_kwargs(self) -> dict:
         kwargs = {}
@@ -157,4 +152,15 @@ class TaskwarriorTask:
             kwargs['labels'] = self.tags
         if self.priority:
             kwargs['priority'] = self.priority.to_todoist()
+        if self.due:
+            key, value = parse_todoist_due_datetime(self.due, self.timezone)
+            kwargs[key] = value
         return kwargs
+    
+def parse_todoist_due_datetime(due : TaskwarriorDatetime, timezone : str) -> tuple[str, str]:
+    # Convert TaskwarriorDatetime to local timezone
+    due_datetime = due.astimezone(ZoneInfo(timezone))
+    if due_datetime.hour == 0 and due_datetime.minute == 0:
+        return 'due_date', due.strftime('%Y-%m-%d')
+    else:
+        return 'due_datetime', due.strftime(TODOIST_DATETIME_FORMAT)
