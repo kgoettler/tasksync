@@ -97,9 +97,13 @@ class TaskwarriorTask:
             'status': TaskwarriorStatus[data['status'].upper()],
         }
         # Optional includes
-        for key in ['id', 'project', 'tags', 'urgency', 'todoist']:
+        for key in ['project', 'tags', 'urgency']:
             if key in data:
                 kwargs[key] = data[key]
+        # Cast ints
+        for key in ['id', 'todoist']:
+            if key in data:
+                kwargs[key] = int(data[key])
         # Cast datetimes
         for key in ['start', 'end', 'due', 'until', 'wait',' modified']:
             if key in data:
@@ -112,6 +116,7 @@ class TaskwarriorTask:
     @classmethod
     def from_todoist(cls, task):
         kwargs = dict(
+            uuid=uuid.uuid4(),
             description=task.content,
             entry=TaskwarriorDatetime.from_todoist(task.created_at),
             status=TaskwarriorStatus.COMPLETED if task.is_completed else TaskwarriorStatus.PENDING,
@@ -128,8 +133,8 @@ class TaskwarriorTask:
         kwargs['todoist'] = int(task.id)
         return cls(**kwargs)
     
-    def update(self, data: dict):
-        for key, value in data.items():
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
         return
@@ -156,7 +161,7 @@ class TaskwarriorTask:
     def to_todoist_api_kwargs(self) -> dict:
         kwargs = {}
         if self.todoist:
-            kwargs['task_id'] = self.todoist
+            kwargs['task_id'] = str(self.todoist)
         kwargs['content'] = self.description
         kwargs['is_completed'] = self.status == TaskwarriorStatus.COMPLETED
         if len(self.tags) > 0:
