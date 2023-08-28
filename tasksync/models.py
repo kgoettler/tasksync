@@ -3,9 +3,9 @@ import json
 import uuid
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
-from todoist_api_python.models import Task, Due
+from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
 from zoneinfo import ZoneInfo
 import tzlocal
 
@@ -13,6 +13,7 @@ TODOIST_DUE_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 class TaskwarriorStatus(Enum):
+    '''Enum for storing Taskwarrior task status'''
     DELETED = 0
     COMPLETED = 1
     PENDING = 2
@@ -23,6 +24,7 @@ class TaskwarriorStatus(Enum):
         return self.name.lower()
 
 class TaskwarriorPriority(Enum):
+    '''Enum for storing Taskwarrior priorities'''
     H = 3
     M = 2
     L = 1
@@ -32,13 +34,16 @@ class TaskwarriorPriority(Enum):
     
     @classmethod
     def from_todoist(cls, value):
+        '''Create from Todoist priority int'''
         # Todoist priorities differ by 1
-        return cls(value-1)
+        return cls(value - 1)
     
     def to_todoist(self):
+        '''Convert to Todoist priority int'''
         return self.value + 1
 
 class TaskwarriorDatetime(datetime.datetime):
+    '''Class for storing Taskwarrior datetime values'''
     
     def __str__(self) -> str:
         # TODO: need this to be timezone aware?
@@ -50,7 +55,7 @@ class TaskwarriorDatetime(datetime.datetime):
 
     @classmethod 
     def from_todoist(cls, value):
-        if isinstance(value, Due):
+        if isinstance(value, TodoistDue):
             if value.datetime is not None:
                 return (cls
                         .strptime(value.datetime, TODOIST_DUE_DATETIME_FORMAT)
@@ -68,6 +73,7 @@ class TaskwarriorDatetime(datetime.datetime):
 
 @dataclass
 class TaskwarriorTask:
+    '''Dataclass for a single Taskwarrior task'''
     description: str
     uuid : uuid.UUID
     entry : TaskwarriorDatetime = TaskwarriorDatetime.now()
@@ -89,7 +95,20 @@ class TaskwarriorTask:
     timezone : Optional[str] = tzlocal.get_localzone_name()
 
     @classmethod
-    def from_taskwarrior(cls, data):
+    def from_taskwarrior(cls, data : Union[dict,str]):
+        '''Create TaskwarriorTask object from a JSON blob emitted by Taskwarrior
+        
+        Parameters
+        ----------
+        data : str, dict
+            JSON str emitted by `task export`, or dict serialized from this str
+        
+        Returns
+        -------
+        task : TaskwarriorTask
+        '''
+        if isinstance(data, str):
+            data = json.loads(data)
         kwargs = {
             'description': data['description'],
             'uuid': data['uuid'],
@@ -114,7 +133,18 @@ class TaskwarriorTask:
         return cls(**kwargs)
 
     @classmethod
-    def from_todoist(cls, task):
+    def from_todoist(cls, task : TodoistTask):
+        '''Create TaskwarriorTask object from a Todoist API Task object
+        
+        Parameters
+        ----------
+        task: TodoistTask
+            Task object returned by the `get_task` method from the Todoist API
+        
+        Returns
+        -------
+        task : TaskwarriorTask
+        '''
         kwargs = dict(
             uuid=uuid.uuid4(),
             description=task.content,
@@ -134,12 +164,32 @@ class TaskwarriorTask:
         return cls(**kwargs)
     
     def update(self, **kwargs):
+        '''Update attributes on the task
+        
+        Parameters
+        ----------
+        kwargs : dict
+            key-value pairs indicating attributes to update
+        
+        Returns
+        -------
+        None
+        '''
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
         return
 
     def to_dict(self, exclude_id=False) -> dict:
+        '''Serialize task to a dict, suitable for presentation as JSON
+        
+        Note: Taskwarrior-specific types (e.g. TaskwarriorDatetime, etc.) will be serialized to str
+        
+        Parameters
+        ----------
+        exclude_id : bool, optional
+            If True, will exclude the `id` attribute from the returned dict.
+        '''
         out = {}
         if not exclude_id:
             out['id'] = self.id
@@ -156,9 +206,31 @@ class TaskwarriorTask:
         return out
     
     def to_json(self, exclude_id=False, **kwargs) -> str:
+        '''Like `to_dict` but returns the value as a JSON string
+
+        Use this method to convert objects into string representations suitable
+        for consumption by Taskwarrior hooks.
+
+        Parameters
+        ----------
+        exclude_id : bool, optional
+            If True, will exclude the `id` attribute from the returned dict.
+        **kwargs : optional
+            Keyword arguments to pass to `json.dumps`
+        '''
         return json.dumps(self.to_dict(exclude_id=exclude_id), **kwargs)
     
     def to_todoist_api_kwargs(self) -> dict:
+        '''Prepare dict of kwargs to pass to TodoistAPI methods
+
+        Output from this method can be passed directly into `add_task`,
+        `update_task`, etc.
+
+        Returns
+        -------
+        kwargs : dict
+            Keyword arguments for TodoistAPI methods
+        '''
         kwargs = {}
         if self.todoist:
             kwargs['task_id'] = str(self.todoist)
@@ -174,6 +246,42 @@ class TaskwarriorTask:
         return kwargs
     
 def parse_todoist_due_datetime(due : TaskwarriorDatetime, timezone : str) -> tuple[str, str]:
+    '''Helper function to convert TaskwarriorDatetime objects into key/value
+    to include in TodoistAPI calls
+
+    Parameters
+    ----------
+    due : TaskwarriorDatetime
+        object specifying the due date of a task
+    timezone : str
+        IANA Zone ID for the timezone in which the task was created (e.g.
+        America/New_York)
+    
+    Returns
+    -------
+    key : str
+        keyword name to include in TodoistAPI calls
+    value : str
+        value for the corresponding keyword
+
+    Notes
+    -----
+    Taskwarrior and Todoist store due dates slightly differently. Taskwarrior
+    stores due dates - and all dates, for that matter - as a timezone-aware UTC
+    timestamp. Todoist stores due dates as either a timezone-aware timestamp
+    (defaults to UTC but can be changed) _or_ a date string. According to
+    Todoist, the date string format makes it easier to accomodate
+    timezone-dependent due dates (e.g. daily routines)
+    
+    We had to make an important assumption here based on these differences to
+    avoid giving every task in Todoist an explicit time.
+    
+    - If a due date for a task in Taskwarrior is midnight on YYYY-mm-dd in the
+      timezone in which the task was created, we map it to a `due_date` in
+      Todoist of YYYY-mm-dd.
+    - If a due date for a task in Taskwarrior is any other time on YYYY-mm-dd,
+      we map it to a `due_datetime` 
+    '''
     # Convert TaskwarriorDatetime to local timezone
     due_datetime = due.astimezone(ZoneInfo(timezone))
     if due_datetime.hour == 0 and due_datetime.minute == 0:
