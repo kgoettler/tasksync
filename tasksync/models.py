@@ -220,7 +220,7 @@ class TaskwarriorTask:
         '''
         return json.dumps(self.to_dict(exclude_id=exclude_id), **kwargs)
     
-    def to_todoist_api_kwargs(self) -> dict:
+    def to_todoist_api_kwargs(self, sync=None) -> dict:
         '''Prepare dict of kwargs to pass to TodoistAPI methods
 
         Output from this method can be passed directly into `add_task`,
@@ -243,6 +243,18 @@ class TaskwarriorTask:
         if self.due:
             key, value = parse_todoist_due_datetime(self.due, self.timezone)
             kwargs[key] = value
+        if self.project and sync is not None:
+            if project := sync.store.find('projects', name=self.project):
+                kwargs['project_id'] = project['id']
+            else:
+                # Make the project
+                temp_id = str(uuid.uuid4())
+                sync.api.add_project(self.project, temp_id)
+                res = sync.api.push()
+                kwargs['project_id'] = res['temp_id_mapping'][temp_id]
+                # Update projects in data store
+                sync.api.pull(resource_types=['projects'])
+                sync.store.load(resource_types=['projects'])
         return kwargs
     
 def parse_todoist_due_datetime(due : TaskwarriorDatetime, timezone : str) -> tuple[str, str]:

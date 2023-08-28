@@ -33,6 +33,6 @@ chmod +x $HOME/.task/hooks/on-modify-todoist.py
 
 [x] Formalize unit tests
 [x] Support for due dates
-[] Support for projects
+[x] Support for projects
 [] Support for subtasks
 [] Formalize sync tools

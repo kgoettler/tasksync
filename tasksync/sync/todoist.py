@@ -6,7 +6,7 @@ import datetime
 import json
 import os
 import uuid
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 import requests
 
@@ -15,21 +15,13 @@ CACHE_PATH = os.path.join(os.environ['HOME'], '.todoist')
 if not exists(CACHE_PATH):
     os.makedirs(CACHE_PATH)
 
-class DefaultEncoder(json.JSONEncoder):
-    def default(self, obj):
-        return obj.__dict__    
-    
-class SyncTokenDecoder(json.JSONDecoder):
-    def __init__(self):
-        json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
-
-    def dict_to_object(self, d):
-        if 'token' in d and 'timestamp' in d:
-            return SyncToken(token=d['token'], timestamp=d['timestamp'])
-        return d
-
 @dataclass
 class SyncToken:
+    '''Sync token returned by Todoist Sync API
+    
+    Basically a wrapper around a token (str) and a timestamp (int) but with a
+    few goodies for convenience
+    '''
     token : str
     timestamp : int = int(datetime.datetime.now().strftime('%s'))
 
@@ -50,6 +42,7 @@ class SyncToken:
 
 @dataclass
 class SyncTokenManager:
+    '''Class to manage SyncTokens on a per-resource basis'''
     collaborator_states : SyncToken
     collaborators : SyncToken
     completed_info : SyncToken
@@ -118,9 +111,96 @@ class SyncTokenManager:
         if file is None:
             file = self.file
         with open(file, 'w') as f:
-            f.write(json.dumps(self.tokens, cls=DefaultEncoder))
+            f.write(json.dumps(self.tokens, cls=SyncTokenEncoder))
+
+class SyncTokenEncoder(json.JSONEncoder):
+    '''JSON encoder for SyncToken objects'''
+    def default(self, obj):
+        return obj.__dict__    
+    
+class SyncTokenDecoder(json.JSONDecoder):
+    '''JSON decoder for SyncToken objects'''
+    def __init__(self):
+        json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
+
+    def dict_to_object(self, d):
+        if 'token' in d and 'timestamp' in d:
+            return SyncToken(token=d['token'], timestamp=d['timestamp'])
+        return d
 
 class TodoistSync:
+    '''Class for interacting with the Todoist Sync API + local storage cache'''
+
+    def __init__(self, basedir=None):
+        self.api = TodoistSyncAPI()
+        self.store = TodoistSyncDataStore(basedir=basedir)
+        return
+    
+class TodoistSyncDataStore:
+    '''Local data store for managing interactions with the Todoist Sync API'''
+
+    def __init__(self, basedir=None):
+        self.basedir = CACHE_PATH if basedir is None else basedir
+        self.resource_types = ['items', 'labels', 'projects', 'sections']
+        self.load()
+
+    def save(self, resource_types=[]):
+        if len(resource_types) == 0:
+            resource_types = self.resource_types
+        for key in resource_types:
+            update_local_data(getattr(self, key), join(self.basedir, '{}.json'.format(key)))
+
+    def load(self, resource_types=[]):
+        if len(resource_types) == 0:
+            resource_types = self.resource_types
+        for key in resource_types:
+            datafile = join(self.basedir, '{}.json'.format(key))
+            if exists(datafile):
+                with open(datafile, 'r') as f:
+                    setattr(self, key, json.load(f))
+            else:
+                setattr(self, key, {})
+
+    # TODO: find out why this is considerably faster than the ones below...
+    # top:     841 ns ± 4.94 ns
+    # middle: 2.11 µs ± 3.76 ns
+    # bottom: 1.11 µs ± 1.96 ns
+    def find(self, key, **kwargs):
+        if key not in self.resource_types:
+            raise ValueError('\'{}\' is not a valid data type'.format(key))
+        for element in getattr(self, key):
+            match = True
+            for k, v in kwargs.items():
+                if element[k] != v:
+                    match = False
+                    break
+            if match:
+                return element
+        return
+    
+    #def find(self, key, **kwargs):
+    #    if key not in self.resource_types:
+    #        raise ValueError('\'{}\' is not a valid data type'.format(key))
+    #    def filter_func(element, kwargs):
+    #        return all([element.get(x, None) == y for x,y in kwargs.items()])
+    #    return next((x for x in getattr(self, key) if filter_func(x, kwargs)), None)
+
+    #def find(self, key, **kwargs):
+    #    if key not in self.resource_types:
+    #        raise ValueError('\'{}\' is not a valid data type'.format(key))
+    #    for element in getattr(self, key):
+    #        if match := filter_func(element, kwargs):
+    #            return match
+    #    return
+
+def filter_func(element, kwargs):
+    for k, v in kwargs.items():
+        if element.get(k, None) != v:
+            return None
+    return element
+
+class TodoistSyncAPI:
+    '''Main class for interacting with Todoist Sync API'''
 
     def __init__(self):
         self.commands = []
@@ -262,6 +342,29 @@ class TodoistSync:
             }
         }
         self.__add_kwargs_to_command(command, **kwargs)
+        self.commands.append(command)
+        return
+    
+    def add_project(self, 
+                    name: str, 
+                    temp_id: str,
+                    color: Optional[str] = None, 
+                    parent_id : Optional[str] = None,
+                    child_order : Optional[int] = None,
+                    is_favorite : bool = False
+    ):
+        endpoint = 'project_add'
+        command = {
+            'type': endpoint,
+            'uuid': str(uuid.uuid4()),
+            'temp_id': temp_id if temp_id is not None else uuid.uuid4(),
+            'args': {
+                'name': name,
+            }
+        }
+        for kwarg in ['color', 'parent_id', 'child_order', 'is_favorite']:
+            if value := locals().get(kwarg):
+                command['args'][kwarg] = value
         self.commands.append(command)
         return
 

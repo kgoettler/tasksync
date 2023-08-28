@@ -5,7 +5,7 @@ from tasksync.models import TaskwarriorTask, TaskwarriorStatus
 from todoist_api_python.api import TodoistAPI
 import tzlocal
 
-def on_add(task_json_input, api) -> tuple[str, str]:
+def on_add(task_json_input, api, sync) -> tuple[str, str]:
     '''
     on-add hook for Taskwarrior
 
@@ -30,14 +30,14 @@ def on_add(task_json_input, api) -> tuple[str, str]:
     task = TaskwarriorTask.from_taskwarrior(json.loads(task_json_input))
 
     # Create task
-    res = api.add_task(**task.to_todoist_api_kwargs())
-    task.todoist = res.id
+    res = api.add_task(**task.to_todoist_api_kwargs(sync))
+    task.todoist = str(int(res.id))
     task.timezone = tzlocal.get_localzone_name()
     feedback = 'Todoist: task created'
     return (task.to_json(), feedback)
 
 
-def on_modify(task_json_input, task_json_output, api) -> tuple[str, str]:
+def on_modify(task_json_input, task_json_output, api, sync) -> tuple[str, str]:
     '''
     on-modify hook for Taskwarrior to sync local changes to Todoist
 
@@ -73,7 +73,7 @@ def on_modify(task_json_input, task_json_output, api) -> tuple[str, str]:
         feedback += 'Todoist: task deleted'
     elif check_supported_todoist_fields(task_input, task_output):
         if task_output.todoist is not None:
-            res = api.update_task(**task_output.to_todoist_api_kwargs())
+            res = api.update_task(**task_output.to_todoist_api_kwargs(sync))
             feedback += 'Todoist: task updated'
         else:
             kwargs = task_output.to_todoist_api_kwargs()
