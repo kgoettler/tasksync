@@ -5,7 +5,7 @@ import json
 import uuid
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Optional, Union, TypedDict
+from typing import Union, TypedDict
 
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
 from zoneinfo import ZoneInfo
@@ -91,6 +91,7 @@ class TaskwarriorDict(TypedDict):
     priority: str
     urgency : float
     # UDAs
+    section : str
     todoist : int
     timezone : str
 
@@ -114,8 +115,9 @@ class TaskwarriorTask:
     urgency : int = 1
     
     # UDAs
-    todoist : Optional[int] = None
+    todoist : int | None = None
     timezone : str = tzlocal.get_localzone_name()
+    section : str | None = None
 
     @classmethod
     def from_taskwarrior(cls, json_data : Union[TaskwarriorDict,str]):
