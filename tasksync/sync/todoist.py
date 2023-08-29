@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from os.path import basename, dirname, exists, join
 import datetime
@@ -136,9 +138,14 @@ class SyncTokenDecoder(json.JSONDecoder):
 class TodoistSync:
     '''Class for interacting with the Todoist Sync API + local storage cache'''
 
-    def __init__(self, basedir=None):
-        self.api = TodoistSyncAPI()
-        self.store = TodoistSyncDataStore(basedir=basedir)
+    def __init__(self, api=None, store=None, basedir=None):
+        self.api = api if api is not None else TodoistSyncAPI()
+        if store is not None:
+            self.store = store
+        elif basedir is not None:
+            self.store = TodoistSyncDataStore(basedir=basedir)
+        else:
+            raise ValueError('Must provide either \'store\' or \'basedir\' argument')
         return
     
 class TodoistSyncDataStore:
@@ -283,7 +290,7 @@ class TodoistSyncAPI:
         self.commands.append(command)
         return
 
-    def complete_item(self, id: str, temp_id: str, date_completed: str = None):
+    def complete_item(self, id: str, temp_id: str, date_completed: str | None = None):
         command = {
             'type': 'item_complete',
             'uuid': str(uuid.uuid4()),
