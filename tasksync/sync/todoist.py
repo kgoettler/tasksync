@@ -33,9 +33,6 @@ class SyncToken:
         self.timestamp = timestamp if timestamp is not None else SyncToken.get_timestamp()
         return self
 
-    def to_json(self):
-        return json.dumps(self.__dict__)
-    
     @staticmethod
     def get_timestamp():
         return int(datetime.datetime.now().strftime('%s'))
@@ -74,6 +71,7 @@ class SyncTokenManager:
         self.tokens = {}
         self.file = join(CACHE_PATH, 'sync_tokens.json')
         if exists(self.file):
+            self.read()
             with open(self.file, 'r') as f:
                 decoder = SyncTokenDecoder()
                 self.tokens = decoder.decode(f.read())
@@ -106,6 +104,13 @@ class SyncTokenManager:
             else:
                 self.tokens[resource_type] = SyncToken(sync_token, timestamp)
         return
+    
+    def read(self, file=None):
+        if file is None:
+            file = self.file
+        with open(file, 'r') as f:
+            decoder = SyncTokenDecoder()
+            self.tokens = decoder.decode(f.read())
     
     def write(self, file=None):
         if file is None:
@@ -210,14 +215,16 @@ class TodoistSyncAPI:
     def load_data(self):
         data_file = join(CACHE_PATH, 'data.json')
         if not exists(data_file):
-            self.sync()
+            self.pull()
         with open(data_file, 'r') as f:
             data = json.load(f)
         return data
 
-    def pull(self, sync_token=None, resource_types=[]):
+    def pull(self, sync_token=None, resource_types=None):
         if sync_token is None:
             sync_token = self.token_manager.get(resource_types)
+        if resource_types is None:
+            resource_types = []
         res = requests.post(
             TODOIST_SYNC_URL,
             headers={
