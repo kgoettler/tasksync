@@ -156,7 +156,7 @@ class TaskwarriorTask:
             if key in data:
                 setattr(out, key, TaskwarriorDatetime.from_taskwarrior(data[key]))
         # Cast priority
-        if hasattr(data, 'priority'):
+        if 'priority' in data:
             out.priority = TaskwarriorPriority[data['priority']]
         return out
 
@@ -181,7 +181,7 @@ class TaskwarriorTask:
         )
         if task.due is not None:
             # TODO: Support datetimes
-            task.due = TaskwarriorDatetime.from_todoist(task.due) # type: ignore
+            out.due = TaskwarriorDatetime.from_todoist(task.due) # type: ignore
         if task.project_id != 'Inbox':
             out.project = task.project_id
         if len(task.labels) > 0:

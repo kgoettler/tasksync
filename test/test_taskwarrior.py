@@ -5,9 +5,14 @@ import pytest
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
 from tasksync.models import TaskwarriorTask, TaskwarriorDatetime, TaskwarriorPriority, TaskwarriorStatus
 
-from test_data import get_task, get_todoist
+from test_data import get_task, get_todoist, get_taskwarrior_input
 
-class TestTaskwarriorWithDueDatetime:
+class TestTaskwarrior:
+
+    def test_from_taskwarrior_str(self):
+        json_data = get_taskwarrior_input(return_type='str')
+        task = TaskwarriorTask.from_taskwarrior(json_data=json_data)
+        assert True
 
     @pytest.mark.parametrize('due_datetime', [True, False])
     def test_from_taskwarrior(self, due_datetime):

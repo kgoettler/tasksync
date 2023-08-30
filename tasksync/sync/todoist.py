@@ -154,6 +154,10 @@ class TodoistSyncDataStore:
     def __init__(self, basedir=None):
         self.basedir = CACHE_PATH if basedir is None else basedir
         self.resource_types = ['items', 'labels', 'projects', 'sections']
+        self.items = []
+        self.labels = []
+        self.projects = []
+        self.sections = []
         self.load()
 
     def save(self, resource_types=[]):

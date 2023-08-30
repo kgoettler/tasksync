@@ -31,7 +31,7 @@ def on_add(task_json_input, api, sync) -> tuple[str, str]:
 
     # Create task
     res = api.add_task(**task.to_todoist_api_kwargs(sync))
-    task.todoist = str(int(res.id))
+    task.todoist = int(res.id)
     task.timezone = tzlocal.get_localzone_name()
     feedback = 'Todoist: task created'
     return (task.to_json(), feedback)

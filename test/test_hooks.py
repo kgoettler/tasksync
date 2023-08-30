@@ -1,8 +1,11 @@
 import pytest
+
+from os.path import dirname, join
 from types import SimpleNamespace
 import json
 
 from tasksync.hooks import on_add, on_modify
+from tasksync.sync.todoist import TodoistSyncDataStore
 
 class DummyAPI:
     def __init__(self):
@@ -20,11 +23,38 @@ class DummyAPI:
         return SimpleNamespace(
             id=123,
         )
+    
+   
+
+class DummySyncAPI:
+
+    def __init__(self):
+        return
+    
+    def add_project(self, name, temp_id, **kwargs):
+        return
+    
+    def push(self):
+        return  {
+            'temp_id_mapping': {
+                'temp_id': 123,
+            }
+        }
+    
+    def pull(self, resource_types=None):
+        return
+    
+class DummySync:
+
+    def __init__(self):
+        self.api = DummyAPI()
+        self.store = TodoistSyncDataStore(basedir=join(dirname(__file__), 'data'))
 
 def test_on_add():
     task_json, feedback = on_add(
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
         DummyAPI(),
+        DummySync(),
     )
     task_json = json.loads(task_json)
     assert task_json['todoist'] == 123
@@ -37,6 +67,7 @@ def test_on_modify_update():
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         '{"id":3,"description":"Test Update","entry":"20230827T232837Z","modified":"20230827T233228Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         DummyAPI(),
+        DummySync(),
     )
     task_json = json.loads(task_json)
     assert task_json['todoist'] == 123
@@ -49,6 +80,7 @@ def test_on_modify_delete():
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T233228Z","status":"deleted","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         DummyAPI(),
+        DummySync(),
     )
     task_json = json.loads(task_json)
     assert feedback == 'Todoist: task deleted'
@@ -58,6 +90,7 @@ def test_on_modify_missing():
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
         '{"id":3,"description":"Test Update","entry":"20230827T232837Z","modified":"20230827T233228Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
         DummyAPI(),
+        DummySync(),
     )
     task_json = json.loads(task_json)
     assert task_json['description'] == 'Test Update'
@@ -70,6 +103,7 @@ def test_on_modify_noop():
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230828T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         DummyAPI(),
+        DummySync(),
     )
     task_json = json.loads(task_json)
     assert feedback == 'Todoist: update not required'
