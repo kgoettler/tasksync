@@ -22,7 +22,6 @@ class TasksyncClient:
         self.client.settimeout(CONNECTION_TIMEOUT)
         return
 
-    
     def send(self, data):
         payload = pickle.dumps(data)
         data_size = len(payload).to_bytes(8, 'little', signed=False)
@@ -32,6 +31,10 @@ class TasksyncClient:
         self.client.sendall(payload)
         recv_size = self.client.recv(8)
         return recv_size == data_size
+    
+    def close(self):
+        self.client.close()
+        return
 
 if __name__ == '__main__': 
     client = TasksyncClient()

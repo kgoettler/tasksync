@@ -5,16 +5,16 @@ import sys
 import os
 
 from tasksync.hooks import on_add
+from tasksync.server import TasksyncClient
 from tasksync.sync.todoist import TodoistSync
-from todoist_api_python.api import TodoistAPI
 
 # Read TaskWarrior task from stdin
 task_json_input = sys.stdin.readline()
 
 try:
-    api = TodoistAPI(os.environ['TODOIST_API_KEY'])
-    sync = TodoistSync()
-    task_json_input, feedback = on_add(task_json_input, api, sync)
+    sync = TodoistSync(basedir=os.path.join(os.environ['HOME'], '.todoist'))
+    client = TasksyncClient()
+    task_json_input, feedback = on_add(task_json_input, sync, client)
 except Exception as e:
     print(task_json_input)
     print(traceback.format_exc())

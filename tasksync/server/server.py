@@ -6,6 +6,7 @@ import logging
 import pickle
 import socket
 import sys
+import time
 
 from tasksync.server.const import (
     SOCKET_PATH,
@@ -15,12 +16,14 @@ from tasksync.server.const import (
 )
 
 from tasksync.sync import TodoistSync
+from tasksync.translator import update_taskwarrior
 
 class TasksyncServer:
 
     def __init__(self, 
                  socket_path : str = SOCKET_PATH,
                  server_timeout: int = SERVER_TIMEOUT,
+                 debug : bool = False,
     ):
         self.socket_path = socket_path
         self.server_timeout = server_timeout
@@ -104,8 +107,22 @@ class TasksyncServer:
 
     def sync(self):
         if len(self._sync.api.commands) > 0:
+            # Push
             self.logger.debug('Syncing to Todoist')
             self.logger.debug('\n{}'.format(json.dumps(self._sync.api.commands, indent=2)))
+            res = self._sync.api.push()
+
+            # Check to see if any item_add commands were included
+            # (in this case we need to update Taskwarrior)
+            taskwarrior_ids = [x.get('temp_id') for x in self._sync.api.commands if x['type'] == 'item_add']
+            if len(taskwarrior_ids) > 0:
+                self.logger.debug('Updating Taskwarrior')
+                update_taskwarrior(res, taskwarrior_ids)
+
+            
+            # Clean up
+            self._sync.api.pull()
+            self.logger.debug('Done')
             self._sync.api.commands = []
         return
 
