@@ -1,7 +1,6 @@
 import json
-import os
 
-from tasksync.taskwarrior import TaskwarriorTask, TaskwarriorStatus
+from tasksync.taskwarrior import TaskwarriorTask
 from tasksync.translator import (
     add_item,
     update_item,
@@ -9,10 +8,7 @@ from tasksync.translator import (
     delete_item,
     complete_item,
     uncomplete_item,
-    create_project,
 )
-from tasksync.todoist import TodoistSync
-import tzlocal
 
 def on_add(task_json_input, sync, client) -> tuple[str, str]:
     '''

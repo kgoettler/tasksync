@@ -6,7 +6,6 @@ import logging
 import pickle
 import socket
 import sys
-import time
 
 from tasksync.server.const import (
     SOCKET_PATH,
@@ -118,7 +117,6 @@ class TasksyncServer:
             if len(taskwarrior_ids) > 0:
                 self.logger.debug('Updating Taskwarrior')
                 update_taskwarrior(res, taskwarrior_ids)
-
             
             # Clean up
             self._sync.api.pull()
