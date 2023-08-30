@@ -89,6 +89,7 @@ class TasksyncServer:
                 recd_bytes += len(chunk)
             data = b''.join(chunks)
             connection.sendall(recd_bytes.to_bytes(8, 'little', signed=False))
+            connection.close()
         except socket.error as err:
             connection.close()
             raise err
