@@ -80,7 +80,7 @@ def update_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: Tod
         args['labels'] = task_new.tags
 
     # Build payload
-    if len(args) > 1:
+    if len(args) > 0:
         data = {
             'type': 'item_update',
             'uuid': str(uuid.uuid4()),
@@ -108,7 +108,8 @@ def move_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: Todoi
             data['args']['project_id'] = project['id']
         else:
             # Project does not exist -- we need to create it
-            ops.append(create_project(name=task_new.project)) # type: ignore
+            ops.extend(create_project(name=task_new.project, temp_id=str(uuid.uuid4()))) # type: ignore
+            data['args']['project_id'] = ops[-1]['temp_id']
     elif _check_remove(task_old, task_new, 'project'):
         if project := store.find('projects', name='Inbox'):
             data['args']['project_id'] = project['id']
@@ -116,13 +117,12 @@ def move_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: Todoi
             raise RuntimeError(
                 'Attempting to move task to Inbox, but Inbox project not found in data store!'
             )
-    if len(data['args']) > 1:
-        ops.append(data)
+    ops.append(data)
     return ops
 
 def delete_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
     ops = []
-    if task_new.status == TaskwarriorStatus.DELETED:
+    if task_old.status != TaskwarriorStatus.DELETED and task_new.status == TaskwarriorStatus.DELETED:
         data = {
             'type': 'item_delete',
             'uuid': str(uuid.uuid4()),
@@ -135,7 +135,7 @@ def delete_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: Tod
 
 def complete_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
     ops = []
-    if task_new.status == TaskwarriorStatus.COMPLETED:
+    if task_old.status != TaskwarriorStatus.COMPLETED and task_new.status == TaskwarriorStatus.COMPLETED:
         data = {
             'type': 'item_complete',
             'uuid': str(uuid.uuid4()),
@@ -161,8 +161,36 @@ def uncomplete_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store:
         ops.append(data)
     return ops
 
-def create_project(name : str) -> dict:
-    raise NotImplementedError('Needs to be implemented!')
+def create_project(name : str,
+                   temp_id : str | None = None,
+                   color : str | None = None,
+                   parent_id : str | None = None,
+                   child_order : int | None = None,
+                   is_favorite : bool | None = None,
+                   view_style : str | None = None
+                   ) -> list:
+    ops = []
+    data = {
+        'type': 'project_add',
+        'uuid': str(uuid.uuid4()),
+        'args': {
+            'name': name,
+        }
+    }
+    if temp_id:
+        data['temp_id'] = temp_id
+    if color:
+        data['args']['color'] = color
+    if parent_id:
+        data['args']['parent_id'] = parent_id
+    if child_order is not None:
+        data['args']['child_order'] = child_order
+    if is_favorite is not None:
+        data['args']['is_favorite'] = is_favorite
+    if view_style is not None:
+        data['args']['view_style'] = view_style
+    ops.append(data) 
+    return ops
 
 def _check_update(task_old: TaskwarriorTask, task_new: TaskwarriorTask, attr : str) -> bool:
     oldval = getattr(task_old, attr)
