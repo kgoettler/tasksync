@@ -115,7 +115,7 @@ class TaskwarriorTask:
     urgency : int = 1
     
     # UDAs
-    todoist : int | None = None
+    todoist : str | None = None
     timezone : str | None = None
     section : str | None = None
 
@@ -144,11 +144,11 @@ class TaskwarriorTask:
             status=TaskwarriorStatus[data['status'].upper()],
         )
         # Optional includes
-        for key in ['project', 'tags', 'urgency', 'timezone']:
+        for key in ['project', 'tags', 'urgency', 'timezone', 'todoist']:
             if key in data:
                 setattr(out, key, data[key])
         # Cast ints
-        for key in ['id', 'todoist']:
+        for key in ['id']:
             if key in data:
                 setattr(out, key, int(data[key]))
         # Cast datetimes
@@ -188,7 +188,7 @@ class TaskwarriorTask:
             out.tags = task.labels
         if task.priority > 1:
             out.priority = TaskwarriorPriority.from_todoist(task.priority)
-        out.todoist = int(task.id)
+        out.todoist = str(task.id)
         return out
     
     def update(self, **kwargs):
@@ -269,7 +269,7 @@ class TaskwarriorTask:
         if self.priority:
             kwargs['priority'] = self.priority.to_todoist()
         if self.due:
-            key, value = parse_todoist_due_datetime(self.due, self.timezone)
+            key, value = parse_todoist_due_datetime(self.due, self.timezone) # type: ignore
             kwargs[key] = value
         if self.project and sync is not None:
             if project := sync.store.find('projects', name=self.project):
