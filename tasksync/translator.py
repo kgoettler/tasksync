@@ -7,7 +7,6 @@ import uuid
 from tasksync.models import (
     TaskwarriorDatetime,
     TaskwarriorDict,
-    TaskwarriorPriority,
     TaskwarriorStatus,
     TaskwarriorTask,
 )
@@ -44,8 +43,13 @@ def add_item(task: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
             'content': task.description,
         }
     }
-    if task.project and (project := store.find('projects', name=task.project)):
-        data['args']['project_id'] = project['id']
+    if task.project:
+        if project := store.find('projects', name=task.project):
+            data['args']['project_id'] = project['id']
+        else:
+            temp_id = str(uuid.uuid4())
+            ops.extend(create_project(name=task.project, temp_id=temp_id))
+            data['args']['project_id'] = temp_id
     if task.due:
         data['args']['due'] = date_from_taskwarrior(task.due, task.timezone)
     if task.priority:

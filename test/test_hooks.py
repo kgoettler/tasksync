@@ -72,13 +72,25 @@ def client():
 
 def test_on_add(sync, client):
     task_json, feedback = on_add(
-        '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
+        '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","project":"Inbox","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
         sync,
         client,
     )
     task_json = json.loads(task_json)
     #assert task_json['todoist'] == 123
     #assert task_json['timezone'] == 'America/New_York'
+    assert feedback == 'Todoist: item created'
+
+def test_on_add_new_project(sync, client):
+    task_json, feedback = on_add(
+        '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","project":"Work","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
+        sync,
+        client,
+    )
+    task_json = json.loads(task_json)
+    #assert task_json['todoist'] == 123
+    #assert task_json['timezone'] == 'America/New_York'
+    assert task_json['project'] == 'Work'
     assert feedback == 'Todoist: item created'
 
 def test_on_modify_update(sync, client):
