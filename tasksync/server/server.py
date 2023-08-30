@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import os
+import json
 import logging
 import pickle
 import socket
@@ -11,14 +14,17 @@ from tasksync.server.const import (
     MAX_BUFFER_SIZE
 )
 
+from tasksync.sync import TodoistSync
+
 class TasksyncServer:
 
     def __init__(self, 
                  socket_path : str = SOCKET_PATH,
-                 server_timeout: int = SERVER_TIMEOUT
+                 server_timeout: int = SERVER_TIMEOUT,
     ):
         self.socket_path = socket_path
         self.server_timeout = server_timeout
+        self._sync = TodoistSync(basedir=os.path.join(os.environ['HOME'], '.todoist'))
 
         # Setup logger
         self.logger = logging.getLogger('tasksync')
@@ -86,7 +92,7 @@ class TasksyncServer:
             raise err
         
         # Append to list of commands needing to run
-        self.commands.append(pickle.loads(data))
+        self._sync.api.commands.extend(pickle.loads(data))
         return
 
     def stop(self):
@@ -95,6 +101,8 @@ class TasksyncServer:
 
     def sync(self):
         self.logger.debug('Syncing to Todoist')
+        self.logger.debug(json.dumps(self._sync.api.commands))
+        self._sync.api.commands = []
         return
 
 

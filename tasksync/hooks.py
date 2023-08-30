@@ -14,7 +14,7 @@ from tasksync.translator import (
 from tasksync.sync import TodoistSync
 import tzlocal
 
-def on_add(task_json_input, sync) -> tuple[str, str]:
+def on_add(task_json_input, sync, client) -> tuple[str, str]:
     '''
     on-add hook for Taskwarrior
 
@@ -39,18 +39,15 @@ def on_add(task_json_input, sync) -> tuple[str, str]:
     task = TaskwarriorTask.from_taskwarrior(json.loads(task_json_input))
 
     # Create task in Todoist
-    sync.api.commands = add_item(task, sync.store)
-    temp_id = sync.api.commands[0]['temp_id']
-    res = sync.api.push()
+    commands = add_item(task, sync.store)
+    client.send(commands)
 
     # Copy resulting id back
-    task.todoist = int(res['temp_id_mapping'][temp_id])
-    task.timezone = tzlocal.get_localzone_name()
     feedback = 'Todoist: item created'
     return (task.to_json(), feedback)
 
 
-def on_modify(task_json_input, task_json_output, sync) -> tuple[str, str]:
+def on_modify(task_json_input, task_json_output, sync, client) -> tuple[str, str]:
     '''
     on-modify hook for Taskwarrior to sync local changes to Todoist
 
@@ -79,7 +76,7 @@ def on_modify(task_json_input, task_json_output, sync) -> tuple[str, str]:
 
     # If task doesn't have a todoist id just create it and move on
     if task_new.todoist is None:
-        return on_add(task_json_output, sync)[0], 'Todoist: item added (did not exist)'
+        return on_add(task_json_output, sync, client)[0], 'Todoist: item added (did not exist)'
 
     actions = []
     commands = []
@@ -110,7 +107,6 @@ def on_modify(task_json_input, task_json_output, sync) -> tuple[str, str]:
                 ', '.join(actions[0:-1]),
                 actions[-1],
             )
-        sync.api.commands = commands
-        sync.api.push() 
+        client.send(commands)
 
     return (task_new.to_json(exclude_id=True), feedback)
