@@ -40,6 +40,7 @@ def on_add(task_json_input, sync, client) -> tuple[str, str]:
 
     # Create task in Todoist
     commands = add_item(task, sync.store)
+    client.connect()
     client.send(commands)
 
     # Copy resulting id back
@@ -98,6 +99,7 @@ def on_modify(task_json_input, task_json_output, sync, client) -> tuple[str, str
     if len(commands) == 0:
         feedback = 'Todoist: update not required'
     else:
+        client.connect()
         if len(actions) == 1:
             feedback = 'Todoist: item {}'.format(actions[0])
         elif len(actions) == 2:

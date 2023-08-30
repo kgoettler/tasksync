@@ -61,7 +61,9 @@ class TasksyncServer:
             except socket.error as err:
                 if err.args[0] == 'timed out':
                     self.logger.debug('Server timeout reached')
-                self.sync()
+                    self.sync()
+                else:
+                    raise err
             except KeyboardInterrupt:
                 self.stop()
                 break
@@ -100,9 +102,10 @@ class TasksyncServer:
         return
 
     def sync(self):
-        self.logger.debug('Syncing to Todoist')
-        self.logger.debug(json.dumps(self._sync.api.commands))
-        self._sync.api.commands = []
+        if len(self._sync.api.commands) > 0:
+            self.logger.debug('Syncing to Todoist')
+            self.logger.debug('\n{}'.format(json.dumps(self._sync.api.commands, indent=2)))
+            self._sync.api.commands = []
         return
 
 

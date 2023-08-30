@@ -15,9 +15,13 @@ class TasksyncClient:
             raise FileNotFoundError(
                 'No socket found at {}. Is the server running?'.format(self.socket_path)
             )
+
+    def connect(self):
         self.client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.client.connect(self.socket_path)
         self.client.settimeout(CONNECTION_TIMEOUT)
+        return
+
     
     def send(self, data):
         payload = pickle.dumps(data)
