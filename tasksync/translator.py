@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TypedDict
 from zoneinfo import ZoneInfo
+import os
+import subprocess
 import uuid
 
 from tasksync.models import (
@@ -50,7 +52,7 @@ def add_item(task: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
             ops.extend(create_project(name=task.project, temp_id=temp_id))
             data['args']['project_id'] = temp_id
     if task.due:
-        data['args']['due'] = date_from_taskwarrior(task.due, task.timezone)
+        data['args']['due'] = date_from_taskwarrior(task.due, task.timezone) # type: ignore
     if task.priority:
         data['args']['priority'] = task.priority.to_todoist()
     if len(task.tags) > 0:
@@ -195,6 +197,25 @@ def create_project(name : str,
         data['args']['view_style'] = view_style
     ops.append(data) 
     return ops
+
+def update_taskwarrior(sync_res, taskwarrior_uuids):
+    '''
+    Update Taskwarrior with Todoist IDs returned by the Sync API
+
+    Note: this only works if you use the taskwarrior UUID as the temp_id in your
+    API calls!
+    '''
+    for taskwarrior_uuid in taskwarrior_uuids:
+        if todoist_id := sync_res.get('temp_id_mapping', {}).get(taskwarrior_uuid):
+            command = [
+                'task',
+                'rc.hooks.location={}'.format(os.environ['HOME']), # bypass hooks
+                taskwarrior_uuid,
+                'modify',
+                'todoist={}'.format(str(todoist_id))
+            ]
+            res = subprocess.run(command, stdout=subprocess.DEVNULL)
+    return
 
 def _check_update(task_old: TaskwarriorTask, task_new: TaskwarriorTask, attr : str) -> bool:
     oldval = getattr(task_old, attr)
