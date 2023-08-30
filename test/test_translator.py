@@ -3,7 +3,7 @@ from os.path import dirname, join
 import uuid
 
 from tasksync.models import TaskwarriorDatetime, TaskwarriorPriority, TaskwarriorStatus, TaskwarriorTask
-from tasksync.sync.todoist import TodoistSyncDataStore
+from tasksync.todoist import TodoistSyncDataStore
 from tasksync.translator import (
     add_item,
     update_item,

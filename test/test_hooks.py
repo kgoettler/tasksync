@@ -6,7 +6,7 @@ import json
 
 from tasksync.hooks import on_add, on_modify
 from tasksync.server import TasksyncClient
-from tasksync.sync.todoist import TodoistSyncDataStore
+from tasksync.todoist import TodoistSyncDataStore
 
 class DummyAPI:
     def __init__(self):

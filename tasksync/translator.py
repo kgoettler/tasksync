@@ -11,7 +11,7 @@ from tasksync.models import (
     TaskwarriorStatus,
     TaskwarriorTask,
 )
-from tasksync.sync import TodoistSyncDataStore
+from tasksync.todoist import TodoistSyncDataStore
 
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 

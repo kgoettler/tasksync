@@ -11,7 +11,7 @@ from tasksync.translator import (
     uncomplete_item,
     create_project,
 )
-from tasksync.sync import TodoistSync
+from tasksync.todoist import TodoistSync
 import tzlocal
 
 def on_add(task_json_input, sync, client) -> tuple[str, str]:

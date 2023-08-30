@@ -6,7 +6,7 @@ import os
 
 from tasksync.hooks import on_add
 from tasksync.server import TasksyncClient
-from tasksync.sync.todoist import TodoistSync
+from tasksync.todoist import TodoistSync
 
 # Read TaskWarrior task from stdin
 task_json_input = sys.stdin.readline()

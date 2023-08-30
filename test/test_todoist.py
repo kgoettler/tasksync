@@ -5,7 +5,7 @@ import datetime
 import pytest
 
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
-from tasksync.sync.todoist import SyncToken, SyncTokenManager
+from tasksync.todoist import SyncToken, SyncTokenManager
 
 class TestSyncToken:
 
