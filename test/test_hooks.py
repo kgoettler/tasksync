@@ -23,22 +23,19 @@ class DummyAPI:
         return SimpleNamespace(
             id=123,
         )
-    
-   
 
 class DummySyncAPI:
-
     def __init__(self):
+        self.commands = []
         return
     
     def add_project(self, name, temp_id, **kwargs):
         return
     
     def push(self):
+        temp_ids = [x['temp_id'] for x in self.commands if 'temp_id' in x]
         return  {
-            'temp_id_mapping': {
-                'temp_id': 123,
-            }
+            'temp_id_mapping': {temp_id: 123 for temp_id in temp_ids} 
         }
     
     def pull(self, resource_types=None):
@@ -47,63 +44,77 @@ class DummySyncAPI:
 class DummySync:
 
     def __init__(self):
-        self.api = DummyAPI()
+        self.api = DummySyncAPI()
         self.store = TodoistSyncDataStore(basedir=join(dirname(__file__), 'data'))
 
-def test_on_add():
+from test_data import get_task
+
+@pytest.fixture
+def task():
+    return get_task()
+
+@pytest.fixture
+def old_task():
+    return get_task()
+
+@pytest.fixture
+def new_task():
+    return get_task()
+
+@pytest.fixture
+def sync():
+    return DummySync()
+
+def test_on_add(sync):
     task_json, feedback = on_add(
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
-        DummyAPI(),
-        DummySync(),
+        sync,
     )
     task_json = json.loads(task_json)
     assert task_json['todoist'] == 123
     assert task_json['timezone'] == 'America/New_York'
-    assert feedback == 'Todoist: task created'
+    assert feedback == 'Todoist: item created'
 
-
-def test_on_modify_update():
+def test_on_modify_update(sync):
     task_json, feedback = on_modify(
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         '{"id":3,"description":"Test Update","entry":"20230827T232837Z","modified":"20230827T233228Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
-        DummyAPI(),
-        DummySync(),
+        sync,
     )
     task_json = json.loads(task_json)
     assert task_json['todoist'] == 123
-    assert task_json['timezone'] == 'America/New_York'
     assert task_json['description'] == 'Test Update'
-    assert feedback == 'Todoist: task updated'
+    assert feedback == 'Todoist: item updated'
 
-def test_on_modify_delete():
+def test_on_modify_delete(sync):
     task_json, feedback = on_modify(
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T233228Z","status":"deleted","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
-        DummyAPI(),
-        DummySync(),
+        sync,
     )
     task_json = json.loads(task_json)
-    assert feedback == 'Todoist: task deleted'
+    assert len(sync.api.commands) == 1
+    assert sync.api.commands[0]['type'] == 'item_delete'
+    assert sync.api.commands[0]['args']['id'] == '123'
+    assert feedback == 'Todoist: item deleted'
 
-def test_on_modify_missing():
+def test_on_modify_missing(sync):
     task_json, feedback = on_modify(
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
         '{"id":3,"description":"Test Update","entry":"20230827T232837Z","modified":"20230827T233228Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0}',
-        DummyAPI(),
-        DummySync(),
+        sync
     )
     task_json = json.loads(task_json)
     assert task_json['description'] == 'Test Update'
     assert task_json['todoist'] == 123
     assert task_json['timezone'] == 'America/New_York'
-    assert feedback == 'Todoist: task created (did not exist)' 
+    assert feedback == 'Todoist: item added (did not exist)' 
 
-def test_on_modify_noop():
+def test_on_modify_noop(sync):
     task_json, feedback = on_modify(
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230827T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
         '{"id":3,"description":"Test 1","entry":"20230827T232837Z","modified":"20230828T232837Z","status":"pending","uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74","urgency":0,"todoist":123}',
-        DummyAPI(),
-        DummySync(),
+        sync
     )
     task_json = json.loads(task_json)
     assert feedback == 'Todoist: update not required'

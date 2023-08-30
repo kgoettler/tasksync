@@ -2,10 +2,19 @@ import json
 import os
 
 from tasksync.models import TaskwarriorTask, TaskwarriorStatus
-from todoist_api_python.api import TodoistAPI
+from tasksync.translator import (
+    add_item,
+    update_item,
+    move_item,
+    delete_item,
+    complete_item,
+    uncomplete_item,
+    create_project,
+)
+from tasksync.sync import TodoistSync
 import tzlocal
 
-def on_add(task_json_input, api, sync) -> tuple[str, str]:
+def on_add(task_json_input, sync) -> tuple[str, str]:
     '''
     on-add hook for Taskwarrior
 
@@ -29,15 +38,19 @@ def on_add(task_json_input, api, sync) -> tuple[str, str]:
     # Read input
     task = TaskwarriorTask.from_taskwarrior(json.loads(task_json_input))
 
-    # Create task
-    res = api.add_task(**task.to_todoist_api_kwargs(sync))
-    task.todoist = int(res.id)
+    # Create task in Todoist
+    sync.api.commands = add_item(task, sync.store)
+    temp_id = sync.api.commands[0]['temp_id']
+    res = sync.api.push()
+
+    # Copy resulting id back
+    task.todoist = int(res['temp_id_mapping'][temp_id])
     task.timezone = tzlocal.get_localzone_name()
-    feedback = 'Todoist: task created'
+    feedback = 'Todoist: item created'
     return (task.to_json(), feedback)
 
 
-def on_modify(task_json_input, task_json_output, api, sync) -> tuple[str, str]:
+def on_modify(task_json_input, task_json_output, sync) -> tuple[str, str]:
     '''
     on-modify hook for Taskwarrior to sync local changes to Todoist
 
@@ -61,50 +74,43 @@ def on_modify(task_json_input, task_json_output, api, sync) -> tuple[str, str]:
     feedback = ''
 
     # Read inputs
-    task_input = TaskwarriorTask.from_taskwarrior(json.loads(task_json_input))
-    task_output = TaskwarriorTask.from_taskwarrior(json.loads(task_json_output))
-    
-    # Only perform API calls if there's something worth updating
-    # - Update required if task was deleted
-    # - Update required if any supported fields were modified
-    # - No update required otherwise
-    if task_output.status == TaskwarriorStatus.DELETED and task_output.todoist:
-        res = api.delete_task(task_id=task_output.todoist)
-        feedback += 'Todoist: task deleted'
-    elif check_supported_todoist_fields(task_input, task_output):
-        if task_output.todoist is not None:
-            res = api.update_task(**task_output.to_todoist_api_kwargs(sync))
-            feedback += 'Todoist: task updated'
-        else:
-            kwargs = task_output.to_todoist_api_kwargs()
-            res = api.add_task(**kwargs)
-            task_output.todoist = res.id
-            task_output.timezone = tzlocal.get_localzone_name()
-            feedback += 'Todoist: task created (did not exist)'
+    task_old = TaskwarriorTask.from_taskwarrior(json.loads(task_json_input))
+    task_new = TaskwarriorTask.from_taskwarrior(json.loads(task_json_output))
+
+    # If task doesn't have a todoist id just create it and move on
+    if task_new.todoist is None:
+        return on_add(task_json_output, sync)[0], 'Todoist: item added (did not exist)'
+
+    actions = []
+    commands = []
+    if ops := update_item(task_old, task_new, sync.store):
+        commands += ops
+        actions.append('updated')
+    if ops := move_item(task_old, task_new, sync.store):
+        commands += ops
+        actions.append('moved')
+    if ops := delete_item(task_old, task_new, sync.store):
+        commands += ops
+        actions.append('deleted')
+    elif ops := complete_item(task_old, task_new, sync.store):
+        commands += ops
+        actions.append('completed')
+    elif ops := uncomplete_item(task_old, task_new, sync.store):
+        commands += ops
+        actions.append('uncompleted')
+    if len(commands) == 0:
+        feedback = 'Todoist: update not required'
     else:
-        feedback += 'Todoist: update not required'
-    return (task_output.to_json(exclude_id=True), feedback)
+        if len(actions) == 1:
+            feedback = 'Todoist: item {}'.format(actions[0])
+        elif len(actions) == 2:
+            feedback = 'Todoist: item {} and {}'.format(*actions)
+        elif len(actions) >= 3:
+            feedback = 'Todoist: item {}, and {}'.format(
+                ', '.join(actions[0:-1]),
+                actions[-1],
+            )
+        sync.api.commands = commands
+        sync.api.push() 
 
-def check_supported_todoist_fields(task_input, task_output):
-    '''
-    Check if any supported Todoist fields have been updated
-
-    Parameters
-    ----------
-    task_input : TaskwarriorTask
-        object created from original JSON str input
-    task_output : TaskwarriorTask
-        object created from updated JSON str input
-
-    Returns
-    -------
-    updated : bool
-        indicates whether Todoist should be updated
-    '''
-    task_input_kwargs = task_input.to_todoist_api_kwargs()
-    task_output_kwargs = task_output.to_todoist_api_kwargs()
-    keys_triggering_update = set(task_input_kwargs.keys()).union(set(task_output_kwargs.keys()))
-    for key in keys_triggering_update:
-        if task_input_kwargs.get(key, None) != task_output_kwargs.get(key, None):
-            return True
-    return False
+    return (task_new.to_json(exclude_id=True), feedback)
