@@ -2,7 +2,7 @@
 
 import pytest
 
-from tasksync.models import TaskwarriorDatetime, parse_todoist_due_datetime
+from tasksync.taskwarrior import TaskwarriorDatetime, parse_todoist_due_datetime
 
 sample_date = "20230828T040000Z"
 sample_datetime = "20230828T130000Z"

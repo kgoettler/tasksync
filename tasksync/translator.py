@@ -6,7 +6,7 @@ import os
 import subprocess
 import uuid
 
-from tasksync.models import (
+from tasksync.taskwarrior import (
     TaskwarriorDatetime,
     TaskwarriorStatus,
     TaskwarriorTask,

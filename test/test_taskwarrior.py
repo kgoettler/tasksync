@@ -3,7 +3,7 @@
 import pytest
 
 #from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
-from tasksync.models import (
+from tasksync.taskwarrior import (
     TaskwarriorTask,
     TaskwarriorDatetime,
     TaskwarriorPriority,

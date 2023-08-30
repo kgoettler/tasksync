@@ -1,7 +1,7 @@
 import json
 import os
 
-from tasksync.models import TaskwarriorTask, TaskwarriorStatus
+from tasksync.taskwarrior import TaskwarriorTask, TaskwarriorStatus
 from tasksync.translator import (
     add_item,
     update_item,
