@@ -6,7 +6,6 @@ import uuid
 
 from tasksync.models import (
     TaskwarriorDatetime,
-    TaskwarriorDict,
     TaskwarriorStatus,
     TaskwarriorTask,
 )
@@ -37,7 +36,7 @@ def add_item(task: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
     ops = []
     data = {
         'type': 'item_add',
-        'temp_id': str(uuid.uuid4()),
+        'temp_id': str(task.uuid),
         'uuid': str(uuid.uuid4()),
         'args': {
             'content': task.description,
