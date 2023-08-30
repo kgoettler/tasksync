@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import json
 import uuid
 from enum import Enum
-from dataclasses import dataclass
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Union, TypedDict
 
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
 from zoneinfo import ZoneInfo
@@ -64,38 +66,61 @@ class TaskwarriorDatetime(datetime.datetime):
             else:
                 return (cls
                         .strptime(value.date, '%Y-%m-%d')
-                        .replace(tzinfo=tzlocal.get_localzone().unwrap_shim())
+                        .replace(tzinfo=tzlocal.get_localzone().unwrap_shim()) # type: ignore
                         .astimezone(ZoneInfo('UTC'))
                 )
         elif isinstance(value, str):
             return cls.strptime(value, TODOIST_DATETIME_FORMAT)
-        
+
+class TaskwarriorDict(TypedDict):
+    description : str
+    uuid : str
+    description: str
+    uuid : str
+    entry : str
+    status : str
+    id : int
+    start : str
+    end : str
+    due : str
+    until : str
+    wait : str
+    modified: str
+    project : str
+    tags : list[str]
+    priority: str
+    urgency : float
+    # UDAs
+    section : str
+    todoist : int
+    timezone : str
 
 @dataclass
 class TaskwarriorTask:
     '''Dataclass for a single Taskwarrior task'''
     description: str
     uuid : uuid.UUID
-    entry : TaskwarriorDatetime = TaskwarriorDatetime.now()
+    entry : TaskwarriorDatetime | None = TaskwarriorDatetime.now()
     status : TaskwarriorStatus = TaskwarriorStatus.PENDING
-    id : Optional[int] = None
-    start : Optional[TaskwarriorDatetime] = None
-    end :  Optional[TaskwarriorDatetime] = None
-    due : Optional[TaskwarriorDatetime] = None
-    until : Optional[TaskwarriorDatetime] = None 
-    wait : Optional[TaskwarriorDatetime] = None
-    modified: Optional[TaskwarriorDatetime] = None
-    project : Optional[str] = None
-    tags : list[str] = ()
-    priority: Optional[TaskwarriorPriority] = None
+    id : int | None = None
+    start : TaskwarriorDatetime | None = None
+    end :  TaskwarriorDatetime | None = None
+    due : TaskwarriorDatetime | None = None
+    until : TaskwarriorDatetime | None = None 
+    wait : TaskwarriorDatetime | None = None
+    modified: TaskwarriorDatetime | None = None
+    project : str | None = None
+    tags : list[str] = field(default_factory=list)
+    priority: TaskwarriorPriority | None = None
     urgency : int = 1
     
     # UDAs
-    todoist : Optional[int] = None
-    timezone : Optional[str] = tzlocal.get_localzone_name()
+    todoist : str | None = None
+    timezone : str | None = None
+    section : str | None = None
 
     @classmethod
-    def from_taskwarrior(cls, data : Union[dict,str]):
+    def from_taskwarrior(cls, json_data : Union[TaskwarriorDict,str]):
         '''Create TaskwarriorTask object from a JSON blob emitted by Taskwarrior
         
         Parameters
@@ -105,32 +130,35 @@ class TaskwarriorTask:
         
         Returns
         -------
-        task : TaskwarriorTask
+        out : TaskwarriorTask
         '''
-        if isinstance(data, str):
-            data = json.loads(data)
-        kwargs = {
-            'description': data['description'],
-            'uuid': data['uuid'],
-            'entry': TaskwarriorDatetime.from_taskwarrior(data['entry']),
-            'status': TaskwarriorStatus[data['status'].upper()],
-        }
+        data : TaskwarriorDict
+        if isinstance(json_data, dict):
+            data = json_data 
+        elif isinstance(json_data, str):
+            data  = json.loads(json_data)
+        out = cls(
+            description= data['description'],
+            uuid=uuid.UUID(data['uuid']),
+            entry=TaskwarriorDatetime.from_taskwarrior(data['entry']),
+            status=TaskwarriorStatus[data['status'].upper()],
+        )
         # Optional includes
-        for key in ['project', 'tags', 'urgency']:
+        for key in ['project', 'tags', 'urgency', 'timezone', 'todoist']:
             if key in data:
-                kwargs[key] = data[key]
+                setattr(out, key, data[key])
         # Cast ints
-        for key in ['id', 'todoist']:
+        for key in ['id']:
             if key in data:
-                kwargs[key] = int(data[key])
+                setattr(out, key, int(data[key]))
         # Cast datetimes
-        for key in ['start', 'end', 'due', 'until', 'wait',' modified']:
+        for key in ['start', 'end', 'due', 'until', 'wait', 'modified']:
             if key in data:
-                kwargs[key] = TaskwarriorDatetime.from_taskwarrior(data[key])
+                setattr(out, key, TaskwarriorDatetime.from_taskwarrior(data[key]))
         # Cast priority
         if 'priority' in data:
-            kwargs['priority'] = TaskwarriorPriority[data['priority']]
-        return cls(**kwargs)
+            out.priority = TaskwarriorPriority[data['priority']]
+        return out
 
     @classmethod
     def from_todoist(cls, task : TodoistTask):
@@ -143,9 +171,9 @@ class TaskwarriorTask:
         
         Returns
         -------
-        task : TaskwarriorTask
+        out : TaskwarriorTask
         '''
-        kwargs = dict(
+        out = cls(
             uuid=uuid.uuid4(),
             description=task.content,
             entry=TaskwarriorDatetime.from_todoist(task.created_at),
@@ -153,15 +181,15 @@ class TaskwarriorTask:
         )
         if task.due is not None:
             # TODO: Support datetimes
-            kwargs['due'] = TaskwarriorDatetime.from_todoist(task.due)
+            out.due = TaskwarriorDatetime.from_todoist(task.due) # type: ignore
         if task.project_id != 'Inbox':
-            kwargs['project'] = task.project_id
+            out.project = task.project_id
         if len(task.labels) > 0:
-            kwargs['tags'] = task.labels
+            out.tags = task.labels
         if task.priority > 1:
-            kwargs['priority'] = TaskwarriorPriority.from_todoist(task.priority)
-        kwargs['todoist'] = int(task.id)
-        return cls(**kwargs)
+            out.priority = TaskwarriorPriority.from_todoist(task.priority)
+        out.todoist = str(task.id)
+        return out
     
     def update(self, **kwargs):
         '''Update attributes on the task
@@ -193,7 +221,7 @@ class TaskwarriorTask:
         out = {}
         if not exclude_id:
             out['id'] = self.id
-        for attr in ['description', 'uuid', 'entry', 'status', 'start', 'end', 'due', 'until', 'wait', 'project', 'priority']:
+        for attr in ['description', 'uuid', 'entry', 'status', 'start', 'end', 'due', 'modified', 'until', 'wait', 'project', 'priority']:
             value = getattr(self, attr)
             if value is not None:
                 out[attr] = str(value)
@@ -220,7 +248,7 @@ class TaskwarriorTask:
         '''
         return json.dumps(self.to_dict(exclude_id=exclude_id), **kwargs)
     
-    def to_todoist_api_kwargs(self) -> dict:
+    def to_todoist_api_kwargs(self, sync=None) -> dict:
         '''Prepare dict of kwargs to pass to TodoistAPI methods
 
         Output from this method can be passed directly into `add_task`,
@@ -241,8 +269,20 @@ class TaskwarriorTask:
         if self.priority:
             kwargs['priority'] = self.priority.to_todoist()
         if self.due:
-            key, value = parse_todoist_due_datetime(self.due, self.timezone)
+            key, value = parse_todoist_due_datetime(self.due, self.timezone) # type: ignore
             kwargs[key] = value
+        if self.project and sync is not None:
+            if project := sync.store.find('projects', name=self.project):
+                kwargs['project_id'] = project['id']
+            else:
+                # Make the project
+                temp_id = str(uuid.uuid4())
+                sync.api.add_project(self.project, temp_id)
+                res = sync.api.push()
+                kwargs['project_id'] = res['temp_id_mapping'][temp_id]
+                # Update projects in data store
+                sync.api.pull(resource_types=['projects'])
+                sync.store.load(resource_types=['projects'])
         return kwargs
     
 def parse_todoist_due_datetime(due : TaskwarriorDatetime, timezone : str) -> tuple[str, str]:

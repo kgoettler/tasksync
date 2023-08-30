@@ -1,0 +1,15 @@
+[
+  {
+    "added_at": "2023-01-01T00:00:00.000000Z",
+    "archived_at": null,
+    "collapsed": true,
+    "id": "100000000",
+    "is_archived": false,
+    "is_deleted": false,
+    "name": "Recents",
+    "project_id": "1000000000",
+    "section_order": 1,
+    "sync_id": null,
+    "user_id": "00000000"
+  }
+]

@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 
 from todoist import TodoistSync
-from util import *
+from tasksync.sync.util import *
 from taskw import TaskWarrior
 
 WORK_PROJECT_ID = '2299975668'

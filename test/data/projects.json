@@ -1,0 +1,32 @@
+[
+  {
+    "child_order": 0,
+    "collapsed": false,
+    "color": "grey",
+    "id": "1000000000",
+    "inbox_project": true,
+    "is_archived": false,
+    "is_deleted": false,
+    "is_favorite": false,
+    "name": "Inbox",
+    "parent_id": null,
+    "shared": false,
+    "sync_id": null,
+    "view_style": "list"
+  },
+  {
+    "child_order": 0,
+    "collapsed": false,
+    "color": "grey",
+    "id": "1000000001",
+    "inbox_project": true,
+    "is_archived": false,
+    "is_deleted": false,
+    "is_favorite": false,
+    "name": "Personal",
+    "parent_id": null,
+    "shared": false,
+    "sync_id": null,
+    "view_style": "list"
+  }
+]

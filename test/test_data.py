@@ -1,25 +1,34 @@
+from __future__ import annotations
+
+import json
+
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDueDate
-from tasksync.models import TaskwarriorTask, TaskwarriorDatetime
+from tasksync.models import TaskwarriorTask, TaskwarriorDatetime, TaskwarriorDict
+
+def get_taskwarrior_input(return_type='dict') -> TaskwarriorDict | str:
+    data = TaskwarriorDict(**{
+        "id": 2,
+        "description": "Test case w/ due_date",
+        "due": "20230828T040000Z",
+        "entry": "20230827T212930Z",
+        "modified": "20230827T212931Z",
+        "priority": "M",
+        "status": "pending",
+        "timezone": "America/New_York",
+        "todoist": 7173209653,
+        "uuid": "2d0fc886-3a8e-478c-a323-5d13de45e254",
+        "tags": [
+            "test2"
+        ],
+        "urgency": 13.2049
+    })
+    if return_type == 'dict':
+        return data
+    else:
+        return json.dumps(data)
 
 def get_task(due_datetime=False):
-    task = TaskwarriorTask.from_taskwarrior(
-        {
-            "id": 2,
-            "description": "Test case w/ due_date",
-            "due": "20230828T040000Z",
-            "entry": "20230827T212930Z",
-            "modified": "20230827T212931Z",
-            "priority": "M",
-            "status": "pending",
-            "timezone": "America/New_York",
-            "todoist": "7173209653",
-            "uuid": "2d0fc886-3a8e-478c-a323-5d13de45e254",
-            "tags": [
-                "test2"
-            ],
-            "urgency": 13.2049
-        }
-    )
+    task = TaskwarriorTask.from_taskwarrior(json_data=get_taskwarrior_input())
     if due_datetime:
         task.due = TaskwarriorDatetime.from_taskwarrior("20230828T130000Z")
     return task

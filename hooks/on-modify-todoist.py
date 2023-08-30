@@ -2,24 +2,20 @@
 
 import traceback
 import sys
-import re
-import json
 import os
-import requests
-from datetime import datetime
 
 from tasksync.hooks import on_modify
-from tasksync.models import TaskwarriorTask, TaskwarriorDatetime
-from todoist_api_python.api import TodoistAPI
-import tzlocal
+from tasksync.server import TasksyncClient
+from tasksync.sync.todoist import TodoistSync
 
 # Read TaskWarrior task from stdin
 task_json_input = sys.stdin.readline()
 task_json_output = sys.stdin.readline()
 
 try:
-    api = TodoistAPI(os.environ['TODOIST_API_KEY'])
-    task_json_output, feedback = on_modify(task_json_input, task_json_output, api)
+    sync = TodoistSync(basedir=os.path.join(os.environ['HOME'], '.todoist'))
+    client = TasksyncClient()
+    task_json_output, feedback = on_modify(task_json_input, task_json_output, sync, client)
 except Exception as e:
     print(task_json_output)
     print(traceback.format_exc())
