@@ -7,6 +7,7 @@ from os.path import basename, dirname, exists, join
 import datetime
 import json
 import os
+import subprocess
 import uuid
 from typing import TypedDict, Optional
 
@@ -88,7 +89,9 @@ class SyncTokenManager:
     def decode(self):
         return self.__dict__
         
-    def get(self, resource_types=[]):
+    def get(self, resource_types=None):
+        if resource_types is None:
+            resource_types = list(self.__dataclass_fields__.keys())
         sync_token, timestamp = '*', int(datetime.datetime.max.strftime('%s'))
         for resource_type in resource_types:
             if token := self.tokens.get(resource_type, None):
