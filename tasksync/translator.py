@@ -117,7 +117,8 @@ def move_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: Todoi
             raise RuntimeError(
                 'Attempting to move task to Inbox, but Inbox project not found in data store!'
             )
-    ops.append(data)
+    if len(data['args']) > 1:
+        ops.append(data)
     return ops
 
 def delete_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
