@@ -42,6 +42,7 @@ def on_add(task_json_input, sync, client) -> tuple[str, str]:
     commands = add_item(task, sync.store)
     client.connect()
     client.send(commands)
+    client.close()
 
     # Copy resulting id back
     feedback = 'Todoist: item created'
@@ -110,5 +111,6 @@ def on_modify(task_json_input, task_json_output, sync, client) -> tuple[str, str
                 actions[-1],
             )
         client.send(commands)
+        client.close()
 
     return (task_new.to_json(exclude_id=True), feedback)
