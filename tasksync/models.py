@@ -116,7 +116,7 @@ class TaskwarriorTask:
     
     # UDAs
     todoist : int | None = None
-    timezone : str = tzlocal.get_localzone_name()
+    timezone : str | None = None
     section : str | None = None
 
     @classmethod
@@ -144,7 +144,7 @@ class TaskwarriorTask:
             status=TaskwarriorStatus[data['status'].upper()],
         )
         # Optional includes
-        for key in ['project', 'tags', 'urgency']:
+        for key in ['project', 'tags', 'urgency', 'timezone']:
             if key in data:
                 setattr(out, key, data[key])
         # Cast ints
@@ -152,7 +152,7 @@ class TaskwarriorTask:
             if key in data:
                 setattr(out, key, int(data[key]))
         # Cast datetimes
-        for key in ['start', 'end', 'due', 'until', 'wait',' modified']:
+        for key in ['start', 'end', 'due', 'until', 'wait', 'modified']:
             if key in data:
                 setattr(out, key, TaskwarriorDatetime.from_taskwarrior(data[key]))
         # Cast priority
@@ -221,7 +221,7 @@ class TaskwarriorTask:
         out = {}
         if not exclude_id:
             out['id'] = self.id
-        for attr in ['description', 'uuid', 'entry', 'status', 'start', 'end', 'due', 'until', 'wait', 'project', 'priority']:
+        for attr in ['description', 'uuid', 'entry', 'status', 'start', 'end', 'due', 'modified', 'until', 'wait', 'project', 'priority']:
             value = getattr(self, attr)
             if value is not None:
                 out[attr] = str(value)

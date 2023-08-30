@@ -68,7 +68,6 @@ class TestTaskwarrior:
         assert isinstance(task_from_todoist.tags, list)
         assert len(task_from_todoist.tags) == 1
         assert task_from_todoist.tags[0] == 'test2'
-        assert task_from_todoist.timezone == 'America/New_York'
         assert task_from_todoist.todoist == 7173209653
     
     def test_update(self):
@@ -78,6 +77,6 @@ class TestTaskwarrior:
         assert task.description == desc
 
     def test_to_json(self):
-        task = get_task()
-        task.to_json(exclude_id=False)
-        assert True
+        json_data = '{"description":"Test 1","entry":"20230827T232837Z","id":3,"modified":"20230827T232837Z","status":"pending","todoist":123,"urgency":0,"uuid":"5da82ec9-e85b-47ac-b0c6-9e3486f9fb74"}'
+        task = TaskwarriorTask.from_taskwarrior(json_data)
+        assert json_data == task.to_json(exclude_id=False, sort_keys=True).replace(', ', ',').replace(': ', ':')
