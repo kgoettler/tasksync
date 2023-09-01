@@ -15,7 +15,7 @@ def get_taskwarrior_input(return_type='dict') -> TaskwarriorDict | str:
         "priority": "M",
         "status": "pending",
         "timezone": "America/New_York",
-        "todoist": 7173209653,
+        "todoist": '7173209653',
         "uuid": "2d0fc886-3a8e-478c-a323-5d13de45e254",
         "tags": [
             "test2"

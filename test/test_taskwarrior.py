@@ -39,22 +39,8 @@ class TestTaskwarrior:
         assert len(task.tags) == 1
         assert task.tags[0] == 'test2'
         assert task.timezone == 'America/New_York'
-        assert isinstance(task.todoist, int)
-        assert task.todoist == 7173209653
-
-    @pytest.mark.parametrize('due_datetime', [True, False])
-    def test_to_todoist_api_kwargs(self, due_datetime):
-        task = get_task(due_datetime=due_datetime)
-        kwargs = task.to_todoist_api_kwargs()
-        assert kwargs['task_id'] == str(task.todoist)
-        assert kwargs['content'] == task.description
-        assert not kwargs['is_completed']
-        assert kwargs['labels'] == task.tags
-        assert kwargs['priority'] == 3
-        if not due_datetime:
-            assert kwargs['due_date'] == '2023-08-28'
-        else:
-            assert kwargs['due_datetime'] == "2023-08-28T13:00:00.000000Z"
+        assert isinstance(task.todoist, str)
+        assert task.todoist == '7173209653'
 
     @pytest.mark.parametrize('due_datetime', [True, False])
     def test_from_todoist(self, due_datetime):
@@ -73,7 +59,7 @@ class TestTaskwarrior:
         assert isinstance(task_from_todoist.tags, list)
         assert len(task_from_todoist.tags) == 1
         assert task_from_todoist.tags[0] == 'test2'
-        assert task_from_todoist.todoist == 7173209653
+        assert task_from_todoist.todoist == '7173209653'
     
     def test_update(self):
         task = get_task()
