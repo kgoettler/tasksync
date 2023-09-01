@@ -16,10 +16,14 @@ try:
     sync = TodoistSync(basedir=os.path.join(os.environ['HOME'], '.todoist'))
     client = TasksyncClient()
     task_json_output, feedback = on_modify(task_json_input, task_json_output, sync, client)
+except ConnectionRefusedError:
+    print(task_json_input)
+    print('Unable to connect to tasksync server - is it running?')
+    sys.exit(1)
 except Exception as e:
     print(task_json_output)
     print(traceback.format_exc())
-    sys.exit(1)
+    sys.exit(100)
 
 print(task_json_output)
 if len(feedback) > 0:
