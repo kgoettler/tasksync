@@ -77,6 +77,18 @@ def status() -> int:
         print('tasksync is not running')
     return 0
 
+
+def pull() -> int:
+    '''
+    Run a complete sync of Todoist -> Taskwarrior
+    '''
+    raise NotYetImplementedError('pull is not yet implemented')
+
+def push() -> int:
+    '''
+    Run a complete sync of Taskwarrior -> Todoist'''
+    raise NotYetImplementedError('push is not yet implemented')
+
 def main():
     parser = argparse.ArgumentParser(
         description='tasksync: start/stop/status of the tasksync server',
