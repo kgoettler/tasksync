@@ -82,12 +82,12 @@ def pull() -> int:
     '''
     Run a complete sync of Todoist -> Taskwarrior
     '''
-    raise NotYetImplementedError('pull is not yet implemented')
+    raise NotImplementedError('pull is not yet implemented')
 
 def push() -> int:
     '''
     Run a complete sync of Taskwarrior -> Todoist'''
-    raise NotYetImplementedError('push is not yet implemented')
+    raise NotImplementedError('push is not yet implemented')
 
 def main():
     parser = argparse.ArgumentParser(
