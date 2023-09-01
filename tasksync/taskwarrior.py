@@ -248,43 +248,6 @@ class TaskwarriorTask:
         '''
         return json.dumps(self.to_dict(exclude_id=exclude_id), **kwargs)
     
-    def to_todoist_api_kwargs(self, sync=None) -> dict:
-        '''Prepare dict of kwargs to pass to TodoistAPI methods
-
-        Output from this method can be passed directly into `add_task`,
-        `update_task`, etc.
-
-        Returns
-        -------
-        kwargs : dict
-            Keyword arguments for TodoistAPI methods
-        '''
-        kwargs = {}
-        if self.todoist:
-            kwargs['task_id'] = str(self.todoist)
-        kwargs['content'] = self.description
-        kwargs['is_completed'] = self.status == TaskwarriorStatus.COMPLETED
-        if len(self.tags) > 0:
-            kwargs['labels'] = self.tags
-        if self.priority:
-            kwargs['priority'] = self.priority.to_todoist()
-        if self.due:
-            key, value = parse_todoist_due_datetime(self.due, self.timezone) # type: ignore
-            kwargs[key] = value
-        if self.project and sync is not None:
-            if project := sync.store.find('projects', name=self.project):
-                kwargs['project_id'] = project['id']
-            else:
-                # Make the project
-                temp_id = str(uuid.uuid4())
-                sync.api.add_project(self.project, temp_id)
-                res = sync.api.push()
-                kwargs['project_id'] = res['temp_id_mapping'][temp_id]
-                # Update projects in data store
-                sync.api.pull(resource_types=['projects'])
-                sync.store.load(resource_types=['projects'])
-        return kwargs
-    
 def parse_todoist_due_datetime(due : TaskwarriorDatetime, timezone : str) -> tuple[str, str]:
     '''Helper function to convert TaskwarriorDatetime objects into key/value
     to include in TodoistAPI calls
