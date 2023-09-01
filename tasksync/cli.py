@@ -34,6 +34,9 @@ def get_tasksync_pid() -> int | None:
         return int(pid)
 
 def start() -> int:
+    '''
+    Start the Tasksync server
+    '''
     if _ := get_tasksync_pid():
         print('tasksync is already running')
         return 1
@@ -44,17 +47,30 @@ def start() -> int:
     ], stdout=logfile)
     with open(PIDFILE, 'w') as f:
         f.write('{}'.format(res.pid))
+    print('tasksync started')
     return 0
 
 def stop() -> int:
+    '''
+    Stop the Tasksync server
+    '''
     if pid := get_tasksync_pid():
-        os.kill(pid, signal.SIGTERM)
+        try:
+            os.kill(pid, signal.SIGTERM)
+            print('tasksync stopped')
+        except ProcessLookupError:
+            print('tasksync is not running')
+        if exists(PIDFILE):
+            os.remove(PIDFILE)
         return 0
     else:
         print('tasksync is not running')
         return 1
     
 def status() -> int:
+    '''
+    Print whether the Tasksync server is running
+    '''
     if pid := get_tasksync_pid():
         print('tasksync is running with pid {}'.format(pid))
     else:
