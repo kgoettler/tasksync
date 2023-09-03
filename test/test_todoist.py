@@ -6,7 +6,7 @@ from os.path import dirname, join
 import os
 import datetime
 
-from tasksync.todoist import SyncToken, SyncTokenManager, TodoistSyncDataStore
+from todoist.api import SyncToken, SyncTokenManager, TodoistSyncDataStore
 
 DATADIR = join(dirname(__file__), 'data')
 

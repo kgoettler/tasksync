@@ -5,7 +5,7 @@ import json
 
 from tasksync.hooks import on_add, on_modify
 from tasksync.server import TasksyncClient
-from tasksync.todoist import TodoistSyncDataStore
+from todoist.api import TodoistSyncDataStore
 
 from test_data import get_task
 

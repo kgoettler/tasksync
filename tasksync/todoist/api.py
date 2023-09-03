@@ -216,11 +216,11 @@ class TodoistSyncDataStore:
     #            return match
     #    return
 
-def filter_func(element, kwargs):
-    for k, v in kwargs.items():
-        if element.get(k, None) != v:
-            return None
-    return element
+#def filter_func(element, kwargs):
+#    for k, v in kwargs.items():
+#        if element.get(k, None) != v:
+#            return None
+#    return element
 
 class TodoistSyncAPI:
     '''Main class for interacting with Todoist Sync API'''

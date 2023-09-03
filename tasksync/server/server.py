@@ -14,7 +14,7 @@ from tasksync.server.const import (
     MAX_BUFFER_SIZE
 )
 
-from tasksync.todoist import TodoistSync
+from todoist.api import TodoistSync
 from tasksync.translator import update_taskwarrior
 
 class TasksyncServer:

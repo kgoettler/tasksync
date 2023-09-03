@@ -1,6 +1,6 @@
 import json
 
-from tasksync.taskwarrior import TaskwarriorTask
+from taskwarrior.models import TaskwarriorTask
 from tasksync.translator import (
     add_item,
     update_item,
@@ -42,7 +42,7 @@ def on_add(task_json_input, sync, client) -> tuple[str, str]:
 
     # Copy resulting id back
     feedback = 'Todoist: item created'
-    return (task.to_json(), feedback)
+    return (task.to_taskwarrior(), feedback)
 
 
 def on_modify(task_json_input, task_json_output, sync, client) -> tuple[str, str]:
@@ -109,4 +109,4 @@ def on_modify(task_json_input, task_json_output, sync, client) -> tuple[str, str
         client.send(commands)
         client.close()
 
-    return (task_new.to_json(exclude_id=True), feedback)
+    return (task_new.to_taskwarrior(exclude_id=True), feedback)
