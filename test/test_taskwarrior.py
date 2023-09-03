@@ -2,8 +2,8 @@
 
 import pytest
 
+from models import TasksyncDatetime
 from taskwarrior.models import (
-    TaskwarriorDatetime,
     TaskwarriorPriority,
     TaskwarriorStatus,
     TaskwarriorTask
@@ -22,7 +22,7 @@ class TestTaskwarrior:
     def test_from_taskwarrior(self, due_datetime):
         task = get_task(due_datetime=due_datetime)
         assert task.id == 2
-        assert isinstance(task.due, TaskwarriorDatetime)
+        assert isinstance(task.due, TasksyncDatetime)
         if not due_datetime:
             assert task.due.strftime('%H%M%S') == '040000'
         else:

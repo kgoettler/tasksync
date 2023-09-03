@@ -1,15 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 
-import datetime
 from enum import Enum
-import json
 from typing import TypedDict, Union
+from zoneinfo import ZoneInfo
+import datetime
+import json
 import uuid
 
-from zoneinfo import ZoneInfo
+from models import TasksyncDatetime
 
-TASKWARRIOR_DATETIME_FORMAT = '%Y%m%dT%H%M%SZ'
 
 class TaskwarriorStatus(Enum):
     '''Enum for storing Taskwarrior task status'''
@@ -31,17 +31,6 @@ class TaskwarriorPriority(Enum):
     def __str__(self) -> str:
         return self.name
     
-class TaskwarriorDatetime(datetime.datetime):
-    '''Class for storing Taskwarrior datetime values'''
-    
-    def __str__(self) -> str:
-        # TODO: need this to be timezone aware?
-        return self.strftime(TASKWARRIOR_DATETIME_FORMAT)
-    
-    @classmethod
-    def from_taskwarrior(cls, value):
-        return cls.strptime(value, TASKWARRIOR_DATETIME_FORMAT).replace(tzinfo=ZoneInfo('UTC'))
-
 class TaskwarriorDict(TypedDict):
     description : str
     uuid : str
@@ -70,15 +59,15 @@ class TaskwarriorTask:
     '''Dataclass for a single Taskwarrior task'''
     description: str
     uuid : uuid.UUID
-    entry : TaskwarriorDatetime | None = TaskwarriorDatetime.now()
+    entry : TasksyncDatetime | None = TasksyncDatetime.now()
     status : TaskwarriorStatus = TaskwarriorStatus.PENDING
     id : int | None = None
-    start : TaskwarriorDatetime | None = None
-    end :  TaskwarriorDatetime | None = None
-    due : TaskwarriorDatetime | None = None
-    until : TaskwarriorDatetime | None = None
-    wait : TaskwarriorDatetime | None = None
-    modified: TaskwarriorDatetime | None = None
+    start : TasksyncDatetime | None = None
+    end :  TasksyncDatetime | None = None
+    due : TasksyncDatetime | None = None
+    until : TasksyncDatetime | None = None
+    wait : TasksyncDatetime | None = None
+    modified: TasksyncDatetime | None = None
     project : str | None = None
     tags : list[str] = field(default_factory=list)
     priority: TaskwarriorPriority | None = None
@@ -110,7 +99,7 @@ class TaskwarriorTask:
         out = cls(
             description= data['description'],
             uuid=uuid.UUID(data['uuid']),
-            entry=TaskwarriorDatetime.from_taskwarrior(data['entry']),
+            entry=TasksyncDatetime.from_taskwarrior(data['entry']),
             status=TaskwarriorStatus[data['status'].upper()],
         )
         # Optional includes
@@ -124,7 +113,7 @@ class TaskwarriorTask:
         # Cast datetimes
         for key in ['start', 'end', 'due', 'until', 'wait', 'modified']:
             if key in data:
-                setattr(out, key, TaskwarriorDatetime.from_taskwarrior(data[key]))
+                setattr(out, key, TasksyncDatetime.from_taskwarrior(data[key]))
         # Cast priority
         if 'priority' in data:
             out.priority = TaskwarriorPriority[data['priority']]
@@ -150,7 +139,7 @@ class TaskwarriorTask:
     def to_dict(self, exclude_id=False) -> dict:
         '''Serialize task to a dict, suitable for presentation as JSON
 
-        Note: Taskwarrior-specific types (e.g. TaskwarriorDatetime, etc.) will be serialized to str
+        Note: Taskwarrior-specific types (e.g. TasksyncDatetime, etc.) will be serialized to str
 
         Parameters
         ----------
@@ -162,8 +151,11 @@ class TaskwarriorTask:
             out['id'] = self.id
         for attr in ['description', 'uuid', 'entry', 'status', 'start', 'end', 'due', 'modified', 'until', 'wait', 'project', 'priority']:
             value = getattr(self, attr)
-            if value is not None:
+            if isinstance(value, TasksyncDatetime):
+                out[attr] = value.to_taskwarrior()
+            elif value is not None:
                 out[attr] = str(value)
+        # Serialize datetimes
         for attr in ['urgency', 'todoist', 'timezone']:
             value = getattr(self, attr)
             if value is not None:

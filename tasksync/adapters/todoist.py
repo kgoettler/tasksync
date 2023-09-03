@@ -6,23 +6,18 @@ import os
 import subprocess
 import uuid
 
+from models import TasksyncDatetime
 from taskwarrior.models import (
-    TaskwarriorDatetime,
     TaskwarriorStatus,
     TaskwarriorTask
 )
 from todoist.api import TodoistSyncDataStore
+from todoist.models import TodoistSyncDue
 
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-class TodoistSyncDue(TypedDict, total=False):
-    date : str
-    timezone : str | None
-    string : str | None
-    lang : str
-    is_recurring : bool
 
-def date_from_taskwarrior(date : TaskwarriorDatetime, timezone : str) -> TodoistSyncDue:
+def date_from_taskwarrior(date : TasksyncDatetime, timezone : str) -> TodoistSyncDue:
     out = TodoistSyncDue({
         'timezone': timezone,
         'is_recurring': False,

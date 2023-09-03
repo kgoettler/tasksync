@@ -11,8 +11,9 @@ import json
 import tzlocal
 
 if TYPE_CHECKING:
-    from taskwarrior.models import TaskwarriorDatetime
     from todoist.models import TodoistSyncDue
+
+TASKWARRIOR_DATETIME_FORMAT = '%Y%m%dT%H%M%SZ'
 
 class TasksyncDateType(Enum):
     FLOATING_DATE = 0
@@ -49,8 +50,8 @@ class TasksyncDatetime(datetime.datetime):
         )
 
     @classmethod 
-    def from_taskwarrior(cls, value : TaskwarriorDatetime) -> TasksyncDatetime:
-        new = cls(value)
+    def from_taskwarrior(cls, value : str) -> TasksyncDatetime:
+        new = cls.strptime(value, TASKWARRIOR_DATETIME_FORMAT).replace(tzinfo=ZoneInfo('UTC'))
         #new = cls.strptime(value, '%Y%m%dT%H%M%SZ').replace(tzinfo=ZoneInfo('UTC'))
         if new.hour == 0 and new.minute == 0:
             new.datetype = TasksyncDateType.FLOATING_DATE
@@ -76,3 +77,6 @@ class TasksyncDatetime(datetime.datetime):
         if new is None:
             raise ValueError('Could not convert {} into TasksyncDatetime via from_todoist'.format(value['date']))
         return new
+    
+    def to_taskwarrior(self) -> str:
+        return self.strftime(TASKWARRIOR_DATETIME_FORMAT)
