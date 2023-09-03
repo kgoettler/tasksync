@@ -14,6 +14,8 @@ import tzlocal
 TODOIST_DUE_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
+TASKWARRIOR_DATETIME_FORMAT = '%Y%m%dT%H%M%SZ'
+
 class TaskwarriorStatus(Enum):
     '''Enum for storing Taskwarrior task status'''
     DELETED = 0
@@ -72,7 +74,7 @@ class TaskwarriorDatetime(datetime.datetime):
         elif isinstance(value, str):
             return cls.strptime(value, TODOIST_DATETIME_FORMAT)
 
-class TaskwarriorDict(TypedDict):
+class TaskwarriorDict(TypedDict, total=False):
     description : str
     uuid : str
     description: str
@@ -160,37 +162,6 @@ class TaskwarriorTask:
             out.priority = TaskwarriorPriority[data['priority']]
         return out
 
-    @classmethod
-    def from_todoist(cls, task : TodoistTask):
-        '''Create TaskwarriorTask object from a Todoist API Task object
-        
-        Parameters
-        ----------
-        task: TodoistTask
-            Task object returned by the `get_task` method from the Todoist API
-        
-        Returns
-        -------
-        out : TaskwarriorTask
-        '''
-        out = cls(
-            uuid=uuid.uuid4(),
-            description=task.content,
-            entry=TaskwarriorDatetime.from_todoist(task.created_at),
-            status=TaskwarriorStatus.COMPLETED if task.is_completed else TaskwarriorStatus.PENDING,
-        )
-        if task.due is not None:
-            # TODO: Support datetimes
-            out.due = TaskwarriorDatetime.from_todoist(task.due) # type: ignore
-        if task.project_id != 'Inbox':
-            out.project = task.project_id
-        if len(task.labels) > 0:
-            out.tags = task.labels
-        if task.priority > 1:
-            out.priority = TaskwarriorPriority.from_todoist(task.priority)
-        out.todoist = str(task.id)
-        return out
-    
     def update(self, **kwargs):
         '''Update attributes on the task
         
