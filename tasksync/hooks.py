@@ -1,7 +1,7 @@
 import json
 
 from taskwarrior.models import TaskwarriorTask
-from tasksync.translator import (
+from adapters.todoist import (
     add_item,
     update_item,
     move_item,

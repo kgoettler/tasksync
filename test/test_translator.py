@@ -4,7 +4,7 @@ import uuid
 
 from taskwarrior.models import TaskwarriorDatetime, TaskwarriorPriority, TaskwarriorStatus, TaskwarriorTask
 from todoist.api import TodoistSyncDataStore
-from tasksync.translator import (
+from adapters.todoist import (
     add_item,
     update_item,
     move_item,

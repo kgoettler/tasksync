@@ -15,7 +15,7 @@ from tasksync.server.const import (
 )
 
 from todoist.api import TodoistSync
-from tasksync.translator import update_taskwarrior
+from adapters.todoist import update_taskwarrior
 
 class TasksyncServer:
 

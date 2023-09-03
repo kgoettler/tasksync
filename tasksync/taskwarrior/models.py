@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from typing import Union, TypedDict
 
 from zoneinfo import ZoneInfo
-import tzlocal
 
 class TaskwarriorStatus(Enum):
     '''Enum for storing Taskwarrior task status'''
