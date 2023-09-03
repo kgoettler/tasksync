@@ -6,7 +6,7 @@ from os.path import dirname, join
 import os
 import datetime
 
-from tasksync.todoist import SyncToken, SyncTokenManager, TodoistSyncDataStore, TodoistSyncTask
+from tasksync.todoist import SyncToken, SyncTokenManager, TodoistSyncDataStore
 
 DATADIR = join(dirname(__file__), 'data')
 
@@ -111,10 +111,3 @@ class TestSyncTokenManager:
         # Read it back in
         token_manager_test = SyncTokenManager(basedir)
         assert token_manager.get() == token_manager_test.get()
-
-
-class TestTodoistSyncTask:
-
-    def test_from_todoist(self, store : TodoistSyncDataStore):
-        item = TodoistSyncTask.from_todoist(store.items[0])
-        assert True
