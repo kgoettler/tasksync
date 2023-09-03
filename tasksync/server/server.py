@@ -7,15 +7,15 @@ import pickle
 import socket
 import sys
 
-from tasksync.server.const import (
+from server.const import (
     SOCKET_PATH,
     SERVER_TIMEOUT,
     CONNECTION_TIMEOUT,
     MAX_BUFFER_SIZE
 )
 
-from tasksync.todoist import TodoistSync
-from tasksync.translator import update_taskwarrior
+from todoist.api import TodoistSync
+from adapters.todoist import update_taskwarrior
 
 class TasksyncServer:
 

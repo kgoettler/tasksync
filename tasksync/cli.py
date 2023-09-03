@@ -11,7 +11,7 @@ import subprocess
 import sys
 
 import tasksync
-from tasksync.server import SOCKET_PATH
+from server import SOCKET_PATH
     
 PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
 LOGFILE = join(os.environ["HOME"], 'tasksync.log')
@@ -43,7 +43,8 @@ def start() -> int:
     logfile = open(LOGFILE, 'w+')
     res = subprocess.Popen([
         'python3',
-        '{}/server/server.py'.format(dirname(tasksync.__file__))
+        '-m',
+        'tasksync.server.server',
     ], stdout=logfile)
     with open(PIDFILE, 'w') as f:
         f.write('{}'.format(res.pid))

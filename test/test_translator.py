@@ -2,9 +2,10 @@ import pytest
 from os.path import dirname, join
 import uuid
 
-from tasksync.taskwarrior import TaskwarriorDatetime, TaskwarriorPriority, TaskwarriorStatus, TaskwarriorTask
-from tasksync.todoist import TodoistSyncDataStore
-from tasksync.translator import (
+from models import TasksyncDatetime
+from taskwarrior.models import TaskwarriorPriority, TaskwarriorStatus, TaskwarriorTask
+from todoist.api import TodoistSyncDataStore
+from adapters.todoist import (
     add_item,
     update_item,
     move_item,
@@ -61,7 +62,7 @@ def test_update_item_content(old_task, new_task, store):
     assert op['args']['content'] == new_task.description
 
 def test_update_item_update_due(old_task, new_task, store):
-    new_task.due = TaskwarriorDatetime.now()
+    new_task.due = TasksyncDatetime.now()
     ops = update_item(old_task, new_task, store)
 
     assert len(ops) == 1
@@ -132,7 +133,7 @@ def test_update_item_remove_labels(old_task, new_task, store):
 
 def test_update_item_all(old_task, new_task, store):
     new_task.description = 'Changed'
-    new_task.due = TaskwarriorDatetime.now()
+    new_task.due = TasksyncDatetime.now()
     new_task.priority = TaskwarriorPriority['H']
     new_task.tags.append('Another Tag')
     ops = update_item(old_task, new_task, store)
@@ -215,7 +216,7 @@ def test_delete_item(old_task : TaskwarriorTask, new_task : TaskwarriorTask, sto
 def test_complete_item(old_task : TaskwarriorTask, new_task : TaskwarriorTask, store : TodoistSyncDataStore):
     old_task.status = TaskwarriorStatus.PENDING
     new_task.status = TaskwarriorStatus.COMPLETED
-    new_task.end = TaskwarriorDatetime.now()
+    new_task.end = TasksyncDatetime.now()
     ops = complete_item(old_task, new_task, store)
 
     assert len(ops) == 1    

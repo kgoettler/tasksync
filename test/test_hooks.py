@@ -3,9 +3,9 @@ import pytest
 from os.path import dirname, join
 import json
 
-from tasksync.hooks import on_add, on_modify
-from tasksync.server import TasksyncClient
-from tasksync.todoist import TodoistSyncDataStore
+from hooks import on_add, on_modify
+from server import TasksyncClient
+from todoist.api import TodoistSyncDataStore
 
 from test_data import get_task
 

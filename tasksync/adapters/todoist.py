@@ -6,23 +6,18 @@ import os
 import subprocess
 import uuid
 
-from tasksync.taskwarrior import (
-    TaskwarriorDatetime,
+from models import TasksyncDatetime
+from taskwarrior.models import (
     TaskwarriorStatus,
-    TaskwarriorTask,
+    TaskwarriorTask
 )
-from tasksync.todoist import TodoistSyncDataStore
+from todoist.api import TodoistSyncDataStore
+from todoist.models import TodoistSyncDue
 
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-class TodoistSyncDue(TypedDict, total=False):
-    date : str
-    timezone : str | None
-    string : str | None
-    lang : str
-    is_recurring : bool
 
-def date_from_taskwarrior(date : TaskwarriorDatetime, timezone : str) -> TodoistSyncDue:
+def date_from_taskwarrior(date : TasksyncDatetime, timezone : str) -> TodoistSyncDue:
     out = TodoistSyncDue({
         'timezone': timezone,
         'is_recurring': False,
@@ -54,7 +49,7 @@ def add_item(task: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
     if task.due:
         data['args']['due'] = date_from_taskwarrior(task.due, task.timezone) # type: ignore
     if task.priority:
-        data['args']['priority'] = task.priority.to_todoist()
+        data['args']['priority'] = task.priority.value + 1
     if len(task.tags) > 0:
         data['args']['labels'] = task.tags
     ops.append(data)
@@ -76,7 +71,7 @@ def update_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: Tod
 
     # Priority
     if _check_update(task_old, task_new, 'priority'):
-        args['priority'] = task_new.priority.to_todoist() # type: ignore
+        args['priority'] = task_new.priority.value + 1 # type: ignore
     elif _check_remove(task_old, task_new, 'priority'):
         args['priority'] = 1
 

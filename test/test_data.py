@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 
+from models import TasksyncDatetime
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDueDate
-from tasksync.taskwarrior import TaskwarriorTask, TaskwarriorDatetime, TaskwarriorDict
+from taskwarrior.models import TaskwarriorDict, TaskwarriorTask
 
 def get_taskwarrior_input(return_type='dict') -> TaskwarriorDict | str:
     data = TaskwarriorDict(**{
@@ -30,7 +31,7 @@ def get_taskwarrior_input(return_type='dict') -> TaskwarriorDict | str:
 def get_task(due_datetime=False):
     task = TaskwarriorTask.from_taskwarrior(json_data=get_taskwarrior_input())
     if due_datetime:
-        task.due = TaskwarriorDatetime.from_taskwarrior("20230828T130000Z")
+        task.due = TasksyncDatetime.from_taskwarrior("20230828T130000Z")
     return task
                 
 def get_todoist(due_datetime=False):
