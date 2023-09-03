@@ -20,8 +20,8 @@
     "timestamp": 1693191470
   },
   "due_exceptions": {
-    "token": "1234567890ABCDEF",
-    "timestamp": 1693191470
+    "token": "EARLIEST",
+    "timestamp": 1000000000
   },
   "filters": {
     "token": "1234567890ABCDEF",
@@ -80,14 +80,6 @@
     "timestamp": 1693193526
   },
   "stats": {
-    "token": "1234567890ABCDEF",
-    "timestamp": 1693191470
-  },
-  "sync_token": {
-    "token": "1234567890ABCDEF",
-    "timestamp": 1693191470
-  },
-  "temp_id_mapping": {
     "token": "1234567890ABCDEF",
     "timestamp": 1693191470
   },

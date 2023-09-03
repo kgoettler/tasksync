@@ -69,9 +69,11 @@ class SyncTokenManager:
     user_settings : SyncToken
     view_options : SyncToken
 
-    def __init__(self):
+    def __init__(self, basedir=None):
+        if basedir is None:
+            basedir = CACHE_PATH 
         self.tokens = {}
-        self.file = join(CACHE_PATH, 'sync_tokens.json')
+        self.file = join(basedir, 'sync_tokens.json')
         if exists(self.file):
             self.read()
             with open(self.file, 'r') as f:
@@ -83,12 +85,9 @@ class SyncTokenManager:
         msg += 'File: {}'.format(self.file)
         for key, token in self.tokens.items():
             msg += '{:<15s}: {}'.format(key, token)
-        print(msg)
+        return msg
 
-    def decode(self):
-        return self.__dict__
-        
-    def get(self, resource_types=None):
+    def get(self, resource_types=None) -> SyncToken:
         if resource_types is None:
             resource_types = list(self.__dataclass_fields__.keys())
         sync_token, timestamp = '*', int(datetime.datetime.max.strftime('%s'))
@@ -97,9 +96,15 @@ class SyncTokenManager:
                 if token.timestamp < timestamp:
                     timestamp = token.timestamp
                     sync_token = token.token
-        return sync_token
+        return SyncToken(
+            token=sync_token,
+            timestamp=timestamp if sync_token != '*' else int(datetime.datetime.min.strftime('%s')),
+        )
     
-    def set(self, sync_token, resource_types):
+    def set(self, sync_token, resource_types=None):
+        if resource_types is None:
+            resource_types = list(self.__dataclass_fields__.keys())
+        # Get current timestamp
         timestamp = SyncToken.get_timestamp()
         for resource_type in resource_types:
             if token := self.tokens.get(resource_type, None):
@@ -235,7 +240,9 @@ class TodoistSyncAPI:
 
     def pull(self, sync_token=None, resource_types=None):
         if sync_token is None:
-            sync_token = self.token_manager.get(resource_types)
+            sync_token_obj = self.token_manager.get(resource_types)
+            sync_token = sync_token_obj.token
+
         if resource_types is None:
             resource_types = []
         res = requests.post(
