@@ -35,9 +35,3 @@ class TasksyncClient:
     def close(self):
         self.client.close()
         return
-
-if __name__ == '__main__': 
-    client = TasksyncClient()
-    data = {"key": "name", "value": "kenneth"}
-    if client.send(data):
-        print('SUCCESS')
