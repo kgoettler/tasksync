@@ -11,7 +11,7 @@ import subprocess
 import sys
 
 import tasksync
-from tasksync.server import SOCKET_PATH
+from server import SOCKET_PATH
     
 PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
 LOGFILE = join(os.environ["HOME"], 'tasksync.log')

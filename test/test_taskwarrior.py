@@ -2,12 +2,11 @@
 
 import pytest
 
-#from todoist_api_python.models import Task as TodoistTask, Due as TodoistDue
 from taskwarrior.models import (
-    TaskwarriorTask,
     TaskwarriorDatetime,
     TaskwarriorPriority,
     TaskwarriorStatus,
+    TaskwarriorTask
 )
 
 from test_data import get_task, get_taskwarrior_input

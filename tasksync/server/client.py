@@ -2,7 +2,7 @@ import os
 import socket
 import pickle
 
-from tasksync.server.const import (
+from server.const import (
     SOCKET_PATH,
     CONNECTION_TIMEOUT,
 )

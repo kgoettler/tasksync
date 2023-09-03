@@ -9,7 +9,7 @@ import uuid
 from taskwarrior.models import (
     TaskwarriorDatetime,
     TaskwarriorStatus,
-    TaskwarriorTask,
+    TaskwarriorTask
 )
 from todoist.api import TodoistSyncDataStore
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDueDate
-from taskwarrior.models import TaskwarriorTask, TaskwarriorDatetime, TaskwarriorDict
+from taskwarrior.models import TaskwarriorDatetime, TaskwarriorDict, TaskwarriorTask
 
 def get_taskwarrior_input(return_type='dict') -> TaskwarriorDict | str:
     data = TaskwarriorDict(**{

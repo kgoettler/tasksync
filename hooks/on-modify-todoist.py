@@ -4,8 +4,8 @@ import traceback
 import sys
 import os
 
-from tasksync.hooks import on_modify
-from tasksync.server import TasksyncClient
+from hooks import on_modify
+from server import TasksyncClient
 from todoist.api import TodoistSync
 
 # Read TaskWarrior task from stdin

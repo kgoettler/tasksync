@@ -1,13 +1,15 @@
 from __future__ import annotations
+from dataclasses import dataclass, field
 
 import datetime
-import json
-import uuid
 from enum import Enum
-from dataclasses import dataclass, field
-from typing import Union, TypedDict
+import json
+from typing import TypedDict, Union
+import uuid
 
 from zoneinfo import ZoneInfo
+
+TASKWARRIOR_DATETIME_FORMAT = '%Y%m%dT%H%M%SZ'
 
 class TaskwarriorStatus(Enum):
     '''Enum for storing Taskwarrior task status'''
@@ -34,11 +36,11 @@ class TaskwarriorDatetime(datetime.datetime):
     
     def __str__(self) -> str:
         # TODO: need this to be timezone aware?
-        return self.strftime('%Y%m%dT%H%M%SZ')
+        return self.strftime(TASKWARRIOR_DATETIME_FORMAT)
     
     @classmethod
     def from_taskwarrior(cls, value):
-        return cls.strptime(value, '%Y%m%dT%H%M%SZ').replace(tzinfo=ZoneInfo('UTC'))
+        return cls.strptime(value, TASKWARRIOR_DATETIME_FORMAT).replace(tzinfo=ZoneInfo('UTC'))
 
 class TaskwarriorDict(TypedDict):
     description : str
@@ -74,14 +76,14 @@ class TaskwarriorTask:
     start : TaskwarriorDatetime | None = None
     end :  TaskwarriorDatetime | None = None
     due : TaskwarriorDatetime | None = None
-    until : TaskwarriorDatetime | None = None 
+    until : TaskwarriorDatetime | None = None
     wait : TaskwarriorDatetime | None = None
     modified: TaskwarriorDatetime | None = None
     project : str | None = None
     tags : list[str] = field(default_factory=list)
     priority: TaskwarriorPriority | None = None
     urgency : int = 1
-    
+
     # UDAs
     todoist : str | None = None
     timezone : str | None = None
@@ -90,19 +92,19 @@ class TaskwarriorTask:
     @classmethod
     def from_taskwarrior(cls, json_data : Union[TaskwarriorDict,str]):
         '''Create TaskwarriorTask object from a JSON blob emitted by Taskwarrior
-        
+
         Parameters
         ----------
         data : str, dict
             JSON str emitted by `task export`, or dict serialized from this str
-        
+
         Returns
         -------
         out : TaskwarriorTask
         '''
         data : TaskwarriorDict
         if isinstance(json_data, dict):
-            data = json_data 
+            data = json_data
         elif isinstance(json_data, str):
             data  = json.loads(json_data)
         out = cls(
@@ -130,12 +132,12 @@ class TaskwarriorTask:
 
     def update(self, **kwargs):
         '''Update attributes on the task
-        
+
         Parameters
         ----------
         kwargs : dict
             key-value pairs indicating attributes to update
-        
+
         Returns
         -------
         None
@@ -147,9 +149,9 @@ class TaskwarriorTask:
 
     def to_dict(self, exclude_id=False) -> dict:
         '''Serialize task to a dict, suitable for presentation as JSON
-        
+
         Note: Taskwarrior-specific types (e.g. TaskwarriorDatetime, etc.) will be serialized to str
-        
+
         Parameters
         ----------
         exclude_id : bool, optional
@@ -169,7 +171,7 @@ class TaskwarriorTask:
         if len(self.tags) > 0:
             out['tags'] = self.tags
         return out
-    
+
     def to_taskwarrior(self, exclude_id=False, **kwargs) -> str:
         '''Like `to_dict` but returns the value as a JSON string
 
@@ -184,3 +186,4 @@ class TaskwarriorTask:
             Keyword arguments to pass to `json.dumps`
         '''
         return json.dumps(self.to_dict(exclude_id=exclude_id), **kwargs)
+
