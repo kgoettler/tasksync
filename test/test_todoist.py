@@ -8,6 +8,7 @@ import datetime
 
 from todoist.api import SyncToken, SyncTokenManager, TodoistSyncDataStore
 from todoist.models import TodoistSyncTask
+from todoist.provider import TodoistProvider
 
 DATADIR = join(dirname(__file__), 'data')
 

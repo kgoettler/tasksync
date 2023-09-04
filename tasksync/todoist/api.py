@@ -177,6 +177,11 @@ class TodoistSync:
             resource_types=resource_types,
         )
         return updated_data
+    
+
+    def push(self, commands=None):
+        # TODO: Perform pull here to update store?
+        return self.api.push(commands=commands)
 
 class TodoistSyncDataStore:
     '''Local data store for managing interactions with the Todoist Sync API'''
@@ -299,28 +304,43 @@ class TodoistSyncAPI:
         data = json.loads(res.text)
         write_local_data(data, CACHE_PATH, overwrite=sync_token == '*')
         
-        # Refresh commands
-        self.commands = []
         return data
 
-    def push(self):
-        if len(self.commands) == 0:
+    def push(self, commands=None):
+        if commands is None:
+            commands = self.commands
+            clear_commands = True
+        else:
+            clear_commands = False
+
+        # Return empty dict if no commands to execute
+        if len(commands) == 0:
             return {}
+        
+        # POST
         res = requests.post(
             TODOIST_SYNC_URL,
             headers={
                 'Authorization': 'Bearer {}'.format(os.environ['TODOIST_API_KEY']),
             },
             json={
-                'commands': self.commands,
+                'commands': commands,
             }
         )
+
+        # Raise exception if sync did not complete properly
         if res.status_code != 200:
             raise RuntimeError('sync error ({})'.format(res.status_code))
+        elif clear_commands:
+            self.clear_commands()
         
-        # Serialize
+        # Serialize response + return
         data = json.loads(res.text)
         return data
+    
+    def clear_commands(self):
+        self.commands.clear()
+        return
 
 def write_local_data(data, outdir, overwrite=False):
     data_file = join(outdir, 'data.json')
