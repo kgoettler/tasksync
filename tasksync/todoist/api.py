@@ -8,7 +8,7 @@ import datetime
 import json
 import os
 import uuid
-from typing import Optional
+from typing import Optional, TypedDict
 
 import requests
 
@@ -39,9 +39,7 @@ class SyncToken:
     def get_timestamp():
         return int(datetime.datetime.now().strftime('%s'))
 
-@dataclass
-class SyncTokenManager:
-    '''Class to manage SyncTokens on a per-resource basis'''
+class SyncTokenDict(TypedDict):
     collaborator_states : SyncToken
     collaborators : SyncToken
     completed_info : SyncToken
@@ -69,27 +67,35 @@ class SyncTokenManager:
     user_settings : SyncToken
     view_options : SyncToken
 
+class SyncTokenManager:
+    '''Class to manage SyncTokens on a per-resource basis'''
+    basedir : str
+    file : str
+    tokens : SyncTokenDict
+
     def __init__(self, basedir=None):
         if basedir is None:
             basedir = CACHE_PATH 
-        self.tokens = {}
+        self.basedir = basedir
         self.file = join(basedir, 'sync_tokens.json')
         if exists(self.file):
             self.read()
-            with open(self.file, 'r') as f:
-                decoder = SyncTokenDecoder()
-                self.tokens = decoder.decode(f.read())
+        else:
+            timestamp = SyncToken.get_timestamp()
+            self.tokens = SyncTokenDict(**{
+                key:SyncToken('*', timestamp) for key in SyncTokenDict.__required_keys__
+            })
 
     def __repr__(self):
         msg =  'SyncTokenManager'
-        msg += 'File: {}'.format(self.file)
-        for key, token in self.tokens.items():
-            msg += '{:<15s}: {}'.format(key, token)
+        msg += '\nFile: {}'.format(self.file)
+        for key, token in self.tokens.items(): # type: ignore
+            msg += '\n{:<15s}: {}'.format(key, token)
         return msg
-
+    
     def get(self, resource_types=None) -> SyncToken:
         if resource_types is None:
-            resource_types = list(self.__dataclass_fields__.keys())
+            resource_types = list(self.tokens.keys())
         sync_token, timestamp = '*', int(datetime.datetime.max.strftime('%s'))
         for resource_type in resource_types:
             if token := self.tokens.get(resource_type, None):
@@ -103,7 +109,7 @@ class SyncTokenManager:
     
     def set(self, sync_token, resource_types=None):
         if resource_types is None:
-            resource_types = list(self.__dataclass_fields__.keys())
+            resource_types = list(self.tokens.keys())
         # Get current timestamp
         timestamp = SyncToken.get_timestamp()
         for resource_type in resource_types:
@@ -147,24 +153,43 @@ class TodoistSync:
 
     def __init__(self, api=None, store=None, basedir=None):
         self.api = api if api is not None else TodoistSyncAPI()
-        if store is not None:
+        if store is not None and basedir is not None:
+            raise ValueError('\'store\' and \'basedir\' arguments are mutually exclusive')
+        elif store is not None:
             self.store = store
         elif basedir is not None:
             self.store = TodoistSyncDataStore(basedir=basedir)
         else:
             raise ValueError('Must provide either \'store\' or \'basedir\' argument')
         return
-    
+
+    def pull(self, sync_token=None, resource_types=None):
+        if sync_token is None:
+            sync_token = self.store.tokens.get(resource_types=resource_types)
+        # Pull data
+        updated_data = self.api.pull(
+            sync_token=sync_token,
+            resource_types=resource_types,
+        )
+        # Update the data store
+        self.store.update(
+            updated_data,
+            resource_types=resource_types,
+        )
+        return updated_data
+
 class TodoistSyncDataStore:
     '''Local data store for managing interactions with the Todoist Sync API'''
+    items : list
+    labels : list
+    projects : list
+    sections : list
+    tokens : SyncTokenManager
 
     def __init__(self, basedir=None):
         self.basedir = CACHE_PATH if basedir is None else basedir
-        self.resource_types = ['items', 'labels', 'projects', 'sections']
-        self.items = []
-        self.labels = []
-        self.projects = []
-        self.sections = []
+        self.tokens = SyncTokenManager(basedir=self.basedir)
+        self.resource_types = ('items', 'labels', 'projects', 'sections')
         self.load()
 
     def save(self, resource_types=[]):
@@ -184,6 +209,13 @@ class TodoistSyncDataStore:
             else:
                 setattr(self, key, {})
 
+    def update(self, data, resource_types=None):
+        if resource_types is None:
+            resource_types = self.resource_types
+        self.tokens.set(data['sync_token'], resource_types=resource_types)
+        self.save(resource_types=resource_types)
+        return
+
     # TODO: find out why this is considerably faster than the ones below...
     # top:     841 ns ± 4.94 ns
     # middle: 2.11 µs ± 3.76 ns
@@ -200,6 +232,20 @@ class TodoistSyncDataStore:
             if match:
                 return element
         return
+    
+    def find_all(self, key, **kwargs):
+        if key not in self.resource_types:
+            raise ValueError('\'{}\' is not a valid data type'.format(key))
+        matches = []
+        for element in getattr(self, key):
+            match = True
+            for k, v in kwargs.items():
+                if element[k] != v:
+                    match = False
+                    break
+            if match:
+                matches.append(element)
+        return matches
     
     #def find(self, key, **kwargs):
     #    if key not in self.resource_types:
@@ -224,27 +270,18 @@ class TodoistSyncDataStore:
 
 class TodoistSyncAPI:
     '''Main class for interacting with Todoist Sync API'''
+    commands : list
 
     def __init__(self):
         self.commands = []
-        self.token_manager = SyncTokenManager()
         return
 
-    def load_data(self):
-        data_file = join(CACHE_PATH, 'data.json')
-        if not exists(data_file):
-            self.pull()
-        with open(data_file, 'r') as f:
-            data = json.load(f)
-        return data
-
     def pull(self, sync_token=None, resource_types=None):
+        # Perform full sync if no token provided
         if sync_token is None:
-            sync_token_obj = self.token_manager.get(resource_types)
-            sync_token = sync_token_obj.token
+            sync_token = '*'
 
-        if resource_types is None:
-            resource_types = []
+        # Execute POST request
         res = requests.post(
             TODOIST_SYNC_URL,
             headers={
@@ -252,21 +289,18 @@ class TodoistSyncAPI:
             },
             data={
                 'sync_token': sync_token, 
-                'resource_types': '["all"]' if len(resource_types) == 0 else str(resource_types).replace('\'', '\"'),
+                'resource_types': '["all"]' if resource_types is None else str(resource_types).replace('\'', '\"'),
             }
         )
         if res.status_code != 200:
             raise RuntimeError('sync error ({})'.format(res.status_code))
-            
-        # Serialize & write 
+        
+        # Serialize response and write to local file
         data = json.loads(res.text)
         write_local_data(data, CACHE_PATH, overwrite=sync_token == '*')
-        # Update tokens
-        self.token_manager.set(
-            data['sync_token'],
-            list(data.keys()) if len(resource_types) == 0 else resource_types
-        )
-        self.token_manager.write()
+        
+        # Refresh commands
+        self.commands = []
         return data
 
     def push(self):
@@ -287,10 +321,6 @@ class TodoistSyncAPI:
         # Serialize
         data = json.loads(res.text)
         return data
-
-    def clear(self):
-        self.commands = []
-        return
 
 def write_local_data(data, outdir, overwrite=False):
     data_file = join(outdir, 'data.json')

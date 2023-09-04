@@ -16,7 +16,6 @@ from todoist.models import TodoistSyncDue
 
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-
 def date_from_taskwarrior(date : TasksyncDatetime, timezone : str) -> TodoistSyncDue:
     out = TodoistSyncDue({
         'timezone': timezone,

@@ -136,15 +136,18 @@ class TaskwarriorTask:
                 setattr(self, key, value)
         return
 
-    def to_dict(self, exclude_id=False) -> dict:
-        '''Serialize task to a dict, suitable for presentation as JSON
+    def to_taskwarrior(self, exclude_id=False, **kwargs) -> str:
+        '''Like `to_dict` but returns the value as a JSON string
 
-        Note: Taskwarrior-specific types (e.g. TasksyncDatetime, etc.) will be serialized to str
+        Use this method to convert objects into string representations suitable
+        for consumption by Taskwarrior hooks.
 
         Parameters
         ----------
         exclude_id : bool, optional
             If True, will exclude the `id` attribute from the returned dict.
+        **kwargs : optional
+            Keyword arguments to pass to `json.dumps`
         '''
         out = {}
         if not exclude_id:
@@ -162,20 +165,5 @@ class TaskwarriorTask:
                 out[attr] = value
         if len(self.tags) > 0:
             out['tags'] = self.tags
-        return out
-
-    def to_taskwarrior(self, exclude_id=False, **kwargs) -> str:
-        '''Like `to_dict` but returns the value as a JSON string
-
-        Use this method to convert objects into string representations suitable
-        for consumption by Taskwarrior hooks.
-
-        Parameters
-        ----------
-        exclude_id : bool, optional
-            If True, will exclude the `id` attribute from the returned dict.
-        **kwargs : optional
-            Keyword arguments to pass to `json.dumps`
-        '''
-        return json.dumps(self.to_dict(exclude_id=exclude_id), **kwargs)
+        return json.dumps(out, **kwargs)
 
