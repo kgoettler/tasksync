@@ -10,10 +10,10 @@ import socket
 import subprocess
 import sys
 
-from todoist.api import TodoistSync
+from tasksync.todoist.api import TodoistSync
 
-from server import SOCKET_PATH
-    
+
+SOCKET_PATH = '/tmp/tasksync'
 PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
 LOGFILE = join(os.environ["HOME"], 'tasksync.log')
 

@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import TypedDict, Union
 
-from models import TasksyncDatetime
+from tasksync.models import TasksyncDatetime
 
 class TodoistSyncDuration(TypedDict):
     amount : float

@@ -8,7 +8,7 @@ import datetime
 import json
 import uuid
 
-from models import TasksyncDatetime
+from tasksync.models import TasksyncDatetime
 
 
 class TaskwarriorStatus(Enum):

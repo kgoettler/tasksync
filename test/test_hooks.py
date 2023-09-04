@@ -3,9 +3,9 @@ import pytest
 from os.path import dirname, join
 import json
 
-from hooks import on_add, on_modify
-from todoist.provider import TodoistProvider
-from todoist.api import TodoistSyncDataStore
+from tasksync.hooks import on_add, on_modify
+from tasksync.todoist.provider import TodoistProvider
+from tasksync.todoist.api import TodoistSyncDataStore
 
 from test_data import get_task
 
@@ -157,3 +157,16 @@ class TestHooks:
         )
         task_json = json.loads(task_json)
         assert feedback == 'Todoist: item updated, moved, and completed'
+
+
+    #def test_real_add(self):
+    #    provider = TodoistProvider()
+    #    task_json, feedback = on_add(
+    #        '{"description":"Real test","entry":"20230904T184947Z","modified":"20230904T184947Z","status":"pending","uuid":"63adcf12-45ef-4ef6-9776-85e49a829013"}',
+    #        provider,
+    #    )
+    #    task_json = json.loads(task_json)
+    #    #assert task_json['todoist'] == 123
+    #    #assert task_json['timezone'] == 'America/New_York'
+    #    assert task_json['project'] == 'Work'
+    #    assert feedback == 'Todoist: item created'

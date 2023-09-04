@@ -2,9 +2,11 @@ import os
 import socket
 import pickle
 
-from server.const import (
+from tasksync.server import (
     SOCKET_PATH,
     CONNECTION_TIMEOUT,
+    send_data,
+    receive_data,
 )
 
 class TasksyncClient:
@@ -22,16 +24,24 @@ class TasksyncClient:
         self.client.settimeout(CONNECTION_TIMEOUT)
         return
 
-    def send(self, data):
-        payload = pickle.dumps(data)
-        data_size = len(payload).to_bytes(8, 'little', signed=False)
+    def send(self, data) -> str:
 
-        # Send
-        self.client.sendall(data_size)
-        self.client.sendall(payload)
-        recv_size = self.client.recv(8)
-        return recv_size == data_size
-    
+        # Send data
+        send_data(self.client, data)
+        
+        # Receive feedback string
+        feedback = receive_data(self.client)
+
+        return feedback
+   
     def close(self):
         self.client.close()
         return
+    
+if __name__ == '__main__':
+    client = TasksyncClient()
+    client.connect()
+    data = {'name': 'ken'}
+    res = client.send(data)
+    print(res)
+    client.close()

@@ -4,16 +4,16 @@ import traceback
 import sys
 import os
 
-from hooks import on_add
-from server import TasksyncClient
-from todoist.provider import TodoistProvider
+from tasksync.hooks import on_add
+from tasksync.server import TasksyncClient
+from tasksync.todoist.provider import TodoistProvider
 
 # Read TaskWarrior task from stdin
 task_json_input = sys.stdin.readline()
 
 try:
     provider = TodoistProvider()
-    client = TasksyncClient()
+    #client = TasksyncClient()
     task_json_input, feedback = on_add(task_json_input, provider)
 except ConnectionRefusedError:
     print(task_json_input)

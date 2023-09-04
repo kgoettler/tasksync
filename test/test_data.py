@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
-from models import TasksyncDatetime
+from tasksync.models import TasksyncDatetime
 from todoist_api_python.models import Task as TodoistTask, Due as TodoistDueDate
-from taskwarrior.models import TaskwarriorDict, TaskwarriorTask
+from tasksync.taskwarrior.models import TaskwarriorDict, TaskwarriorTask
 
 def get_taskwarrior_input(return_type='dict') -> TaskwarriorDict | str:
     data = TaskwarriorDict(**{

@@ -7,15 +7,17 @@ import pickle
 import socket
 import sys
 
-from server.const import (
+from tasksync.server import (
     SOCKET_PATH,
     SERVER_TIMEOUT,
     CONNECTION_TIMEOUT,
-    MAX_BUFFER_SIZE
+    MAX_BUFFER_SIZE,
+    send_data,
+    receive_data,
 )
 
-from todoist.api import TodoistSync
-from todoist.adapter import update_taskwarrior
+from tasksync.todoist.api import TodoistSync
+from tasksync.todoist.adapter import update_taskwarrior
 
 class TasksyncServer:
 
@@ -27,6 +29,7 @@ class TasksyncServer:
         self.socket_path = socket_path
         self.server_timeout = server_timeout
         self._sync = TodoistSync(basedir=os.path.join(os.environ['HOME'], '.todoist'))
+        self.debug = debug
 
         # Setup logger
         self.logger = logging.getLogger('tasksync')
@@ -63,7 +66,7 @@ class TasksyncServer:
             except socket.error as err:
                 if err.args[0] == 'timed out':
                     self.logger.debug('Server timeout reached')
-                    self.sync()
+                    #self.sync()
                 else:
                     raise err
             except KeyboardInterrupt:
@@ -76,28 +79,17 @@ class TasksyncServer:
         self.logger.debug('Connection received')
         connection.settimeout(CONNECTION_TIMEOUT)
         try:
-            # Get payload size
-            payload_bytes = connection.recv(8)
-            payload_bytes = int.from_bytes(payload_bytes, 'little', signed=False)
-            self.logger.debug('payload size: {} bytes'.format(payload_bytes))
-            # Receive data from the client
-            chunks = []
-            recd_bytes = 0
-            while recd_bytes < payload_bytes:
-                chunk = connection.recv(min(payload_bytes - recd_bytes, MAX_BUFFER_SIZE))
-                if not chunk:
-                    break
-                chunks.append(chunk)
-                recd_bytes += len(chunk)
-            data = b''.join(chunks)
-            connection.sendall(recd_bytes.to_bytes(8, 'little', signed=False))
-            connection.close()
+            data = receive_data(connection) 
+            print(data)
+            send_data(connection, {'name': 'server'})
         except socket.error as err:
             connection.close()
             raise err
         
+        self.logger.debug('{}'.format(str(data)))
+        
         # Append to list of commands needing to run
-        self._sync.api.commands.extend(pickle.loads(data))
+        #self._sync.api.commands.extend(pickle.loads(data))
         return
 
     def stop(self):
@@ -126,5 +118,5 @@ class TasksyncServer:
 
 
 if __name__ == '__main__':
-    server = TasksyncServer()
+    server = TasksyncServer(debug=True)
     server.start()

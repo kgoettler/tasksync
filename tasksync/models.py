@@ -11,7 +11,7 @@ import json
 import tzlocal
 
 if TYPE_CHECKING:
-    from todoist.models import TodoistSyncDue
+    from tasksync.todoist.models import TodoistSyncDue
 
 TASKWARRIOR_DATETIME_FORMAT = '%Y%m%dT%H%M%SZ'
 

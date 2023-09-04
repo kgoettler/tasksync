@@ -2,8 +2,8 @@
 
 import pytest
 
-from models import TasksyncDatetime
-from taskwarrior.models import (
+from tasksync.models import TasksyncDatetime
+from tasksync.taskwarrior.models import (
     TaskwarriorPriority,
     TaskwarriorStatus,
     TaskwarriorTask

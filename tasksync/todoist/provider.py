@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from tasklib import Task
 
-from taskwarrior.models import TaskwarriorTask
-from todoist.adapter import (
+from tasksync.taskwarrior.models import TaskwarriorTask
+from tasksync.todoist.adapter import (
     add_item,
     update_item,
     move_item,
@@ -12,7 +12,7 @@ from todoist.adapter import (
     uncomplete_item,
     update_taskwarrior
 )
-from todoist.api import TodoistSync, TodoistSyncDataStore
+from tasksync.todoist.api import TodoistSync, TodoistSyncDataStore
 
 class TodoistProvider:
 
@@ -62,6 +62,7 @@ class TodoistProvider:
                     actions[-1],
                 )
         self.commands += commands
+        self.push()
         return task_new.to_taskwarrior(exclude_id=True), feedback
 
     def pull(self) -> None:
@@ -74,6 +75,8 @@ class TodoistProvider:
         # (in this case we need to update Taskwarrior)
         new_uuids = [x.get('temp_id') for x in self.commands if x['type'] == 'item_add']
         if len(new_uuids) > 0:
-            update_taskwarrior(res, new_uuids) 
+            update_taskwarrior(res, new_uuids)
+
+        # Clear out commands
         self.commands.clear()
         return

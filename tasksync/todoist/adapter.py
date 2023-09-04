@@ -6,13 +6,13 @@ import os
 import subprocess
 import uuid
 
-from models import TasksyncDatetime
-from taskwarrior.models import (
+from tasksync.models import TasksyncDatetime
+from tasksync.taskwarrior.models import (
     TaskwarriorStatus,
     TaskwarriorTask
 )
-from todoist.api import TodoistSyncDataStore
-from todoist.models import TodoistSyncDue
+from tasksync.todoist.api import TodoistSyncDataStore
+from tasksync.todoist.models import TodoistSyncDue
 
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
@@ -203,7 +203,7 @@ def update_taskwarrior(sync_res, taskwarrior_uuids):
         if todoist_id := sync_res.get('temp_id_mapping', {}).get(taskwarrior_uuid):
             command = [
                 'task',
-                'rc.hooks.location={}'.format(os.environ['HOME']), # bypass hooks
+                'rc.hooks=off', # bypass hooks
                 taskwarrior_uuid,
                 'modify',
                 'todoist={}'.format(str(todoist_id))

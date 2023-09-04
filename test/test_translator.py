@@ -2,10 +2,10 @@ import pytest
 from os.path import dirname, join
 import uuid
 
-from models import TasksyncDatetime
-from taskwarrior.models import TaskwarriorPriority, TaskwarriorStatus, TaskwarriorTask
-from todoist.api import TodoistSyncDataStore
-from todoist.adapter import (
+from tasksync.models import TasksyncDatetime
+from tasksync.taskwarrior.models import TaskwarriorPriority, TaskwarriorStatus, TaskwarriorTask
+from tasksync.todoist.api import TodoistSyncDataStore
+from tasksync.todoist.adapter import (
     add_item,
     update_item,
     move_item,
