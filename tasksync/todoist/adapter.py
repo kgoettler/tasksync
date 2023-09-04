@@ -208,7 +208,7 @@ def update_taskwarrior(sync_res, taskwarrior_uuids):
                 'modify',
                 'todoist={}'.format(str(todoist_id))
             ]
-            res = subprocess.run(command, stdout=subprocess.DEVNULL)
+            res = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return
 
 def _check_update(task_old: TaskwarriorTask, task_new: TaskwarriorTask, attr : str) -> bool:

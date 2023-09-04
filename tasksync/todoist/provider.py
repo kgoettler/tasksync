@@ -62,7 +62,6 @@ class TodoistProvider:
                     actions[-1],
                 )
         self.commands += commands
-        self.push()
         return task_new.to_taskwarrior(exclude_id=True), feedback
 
     def pull(self) -> None:

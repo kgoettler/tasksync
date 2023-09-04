@@ -23,6 +23,25 @@ class TasksyncClient:
         self.client.connect(self.socket_path)
         self.client.settimeout(CONNECTION_TIMEOUT)
         return
+    
+    def on_add(self, task_str: str) -> str:
+        data = {
+            'type': 'on-add',
+            'args': [
+                task_str,
+            ]
+        }
+        return self.send(data)
+    
+    def on_modify(self, task_str_old : str, task_str_new : str) -> str:
+        data = {
+            'type': 'on-modify',
+            'args': [
+                task_str_old,
+                task_str_new,
+            ]
+        }
+        return self.send(data)
 
     def send(self, data) -> str:
 

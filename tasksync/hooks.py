@@ -1,14 +1,6 @@
 import json
 
 from tasksync.taskwarrior.models import TaskwarriorTask
-from tasksync.todoist.adapter import (
-    add_item,
-    update_item,
-    move_item,
-    delete_item,
-    complete_item,
-    uncomplete_item,
-)
 
 def on_add(task_json_input, provider) -> tuple[str, str]:
     '''

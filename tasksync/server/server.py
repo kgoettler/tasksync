@@ -15,21 +15,19 @@ from tasksync.server import (
     send_data,
     receive_data,
 )
+from tasksync.taskwarrior import TaskwarriorTask
 
-from tasksync.todoist.api import TodoistSync
-from tasksync.todoist.adapter import update_taskwarrior
+from tasksync.todoist.provider import TodoistProvider
 
 class TasksyncServer:
 
     def __init__(self, 
                  socket_path : str = SOCKET_PATH,
                  server_timeout: int = SERVER_TIMEOUT,
-                 debug : bool = False,
     ):
         self.socket_path = socket_path
         self.server_timeout = server_timeout
-        self._sync = TodoistSync(basedir=os.path.join(os.environ['HOME'], '.todoist'))
-        self.debug = debug
+        self.provider = TodoistProvider()
 
         # Setup logger
         self.logger = logging.getLogger('tasksync')
@@ -66,7 +64,7 @@ class TasksyncServer:
             except socket.error as err:
                 if err.args[0] == 'timed out':
                     self.logger.debug('Server timeout reached')
-                    #self.sync()
+                    self.sync()
                 else:
                     raise err
             except KeyboardInterrupt:
@@ -79,17 +77,19 @@ class TasksyncServer:
         self.logger.debug('Connection received')
         connection.settimeout(CONNECTION_TIMEOUT)
         try:
-            data = receive_data(connection) 
-            print(data)
-            send_data(connection, {'name': 'server'})
+            data = receive_data(connection)
+            if data['type'] == 'on-add':
+                task = TaskwarriorTask.from_taskwarrior(data['args'][0])
+                _, feedback = self.provider.on_add(task)
+            elif data['type'] == 'on-modify':
+                task_old, task_new = [TaskwarriorTask.from_taskwarrior(x) for x in data['args']]
+                _, feedback = self.provider.on_modify(task_old, task_new)
+            else:
+                raise TasksyncServerError('Unrecognized payload type: \'{}\''.format(data['type']))
+            send_data(connection, feedback)
         except socket.error as err:
             connection.close()
             raise err
-        
-        self.logger.debug('{}'.format(str(data)))
-        
-        # Append to list of commands needing to run
-        #self._sync.api.commands.extend(pickle.loads(data))
         return
 
     def stop(self):
@@ -97,26 +97,12 @@ class TasksyncServer:
         return
 
     def sync(self):
-        if len(self._sync.api.commands) > 0:
-            # Push
-            self.logger.debug('Syncing to Todoist')
-            self.logger.debug('\n{}'.format(json.dumps(self._sync.api.commands, indent=2)))
-            res = self._sync.api.push()
-
-            # Check to see if any item_add commands were included
-            # (in this case we need to update Taskwarrior)
-            taskwarrior_ids = [x.get('temp_id') for x in self._sync.api.commands if x['type'] == 'item_add']
-            if len(taskwarrior_ids) > 0:
-                self.logger.debug('Updating Taskwarrior')
-                update_taskwarrior(res, taskwarrior_ids)
-            
-            # Clean up
-            self._sync.api.pull()
-            self.logger.debug('Done')
-            self._sync.api.commands = []
+        self.provider.push()
         return
 
+class TasksyncServerError(Exception):
+    pass
 
 if __name__ == '__main__':
-    server = TasksyncServer(debug=True)
+    server = TasksyncServer()
     server.start()
