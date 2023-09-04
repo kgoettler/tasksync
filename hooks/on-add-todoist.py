@@ -6,15 +6,15 @@ import os
 
 from hooks import on_add
 from server import TasksyncClient
-from todoist.api import TodoistSync
+from todoist.provider import TodoistProvider
 
 # Read TaskWarrior task from stdin
 task_json_input = sys.stdin.readline()
 
 try:
-    sync = TodoistSync(basedir=os.path.join(os.environ['HOME'], '.todoist'))
+    provider = TodoistProvider()
     client = TasksyncClient()
-    task_json_input, feedback = on_add(task_json_input, sync, client)
+    task_json_input, feedback = on_add(task_json_input, provider)
 except ConnectionRefusedError:
     print(task_json_input)
     print('Unable to connect to tasksync server - is it running?')
