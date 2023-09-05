@@ -24,6 +24,7 @@ class TasksyncServer:
     def __init__(self, 
                  socket_path : str = SOCKET_PATH,
                  server_timeout: int = SERVER_TIMEOUT,
+                 loglevel : int = logging.DEBUG,
     ):
         self.socket_path = socket_path
         self.server_timeout = server_timeout
@@ -32,12 +33,12 @@ class TasksyncServer:
         # Setup logger
         self.logger = logging.getLogger('tasksync')
         handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(logging.DEBUG)
+        handler.setLevel(loglevel)
         formatter = logging.Formatter('{asctime} | {levelname:<8s} | {name} | {message}', style='{')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.logger.debug('Starting Tasksync server')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(loglevel)
 
         # Setup socket
         # remove the socket file if it already exists
@@ -71,33 +72,42 @@ class TasksyncServer:
                 self.stop()
                 break
         return
-
-    def receive(self):
-        connection, client_address = self.server.accept()
-        self.logger.debug('Connection received')
-        connection.settimeout(CONNECTION_TIMEOUT)
-        try:
-            data = receive_data(connection)
-            if data['type'] == 'on-add':
-                task = TaskwarriorTask.from_taskwarrior(data['args'][0])
-                _, feedback = self.provider.on_add(task)
-            elif data['type'] == 'on-modify':
-                task_old, task_new = [TaskwarriorTask.from_taskwarrior(x) for x in data['args']]
-                _, feedback = self.provider.on_modify(task_old, task_new)
-            else:
-                raise TasksyncServerError('Unrecognized payload type: \'{}\''.format(data['type']))
-            send_data(connection, feedback)
-        except socket.error as err:
-            connection.close()
-            raise err
-        return
-
+    
     def stop(self):
         os.unlink(self.socket_path)
         return
 
     def sync(self):
         self.provider.push()
+        return
+    
+    def receive(self):
+        connection, client_address = self.server.accept()
+        self.logger.debug('Connection received')
+        connection.settimeout(CONNECTION_TIMEOUT)
+        try:
+            self._receive_data(connection)
+        except socket.error as err:
+            connection.close()
+            raise err
+        return
+    
+    def _receive_data(self, connection : socket.socket):
+        # Receive data from client
+        data = receive_data(connection)
+
+        # Send to provider
+        if data['type'] == 'on-add':
+            task = TaskwarriorTask.from_taskwarrior(data['args'][0])
+            task_str_out, feedback = self.provider.on_add(task)
+        elif data['type'] == 'on-modify':
+            task_old, task_new = [TaskwarriorTask.from_taskwarrior(x) for x in data['args']]
+            task_str_out, feedback = self.provider.on_modify(task_old, task_new)
+        else:
+            raise TasksyncServerError('Unrecognized payload type: \'{}\''.format(data['type']))
+
+        # Send feedback to client
+        send_data(connection, feedback)
         return
 
 class TasksyncServerError(Exception):

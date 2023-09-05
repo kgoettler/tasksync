@@ -26,7 +26,7 @@ class TasksyncDateType(Enum):
         elif self.value == 1:
             return '%Y-%m-%dT%H:%M:%S'
         else:
-            return '%Y-%m-%dT%H:%M:%S.%fZ'
+            return '%Y-%m-%dT%H:%M:%SZ'
 
 class TasksyncDatetime(datetime.datetime):
     datetype : TasksyncDateType

@@ -79,7 +79,7 @@ class SyncTokenManager:
         self.basedir = basedir
         self.file = join(basedir, 'sync_tokens.json')
         if exists(self.file):
-            self.read()
+            self.load()
         else:
             timestamp = SyncToken.get_timestamp()
             self.tokens = SyncTokenDict(**{
@@ -120,14 +120,14 @@ class SyncTokenManager:
                 self.tokens[resource_type] = SyncToken(sync_token, timestamp)
         return
     
-    def read(self, file=None):
+    def load(self, file=None):
         if file is None:
             file = self.file
         with open(file, 'r') as f:
             decoder = SyncTokenDecoder()
             self.tokens = decoder.decode(f.read())
     
-    def write(self, file=None):
+    def save(self, file=None):
         if file is None:
             file = self.file
         with open(file, 'w') as f:
@@ -200,8 +200,10 @@ class TodoistSyncDataStore:
     def save(self, resource_types=[]):
         if len(resource_types) == 0:
             resource_types = self.resource_types
-        for key in resource_types:
-            update_local_data(getattr(self, key), join(self.basedir, '{}.json'.format(key)))
+        for resource_type in resource_types:
+            with open(join(self.basedir, '{}.json'.format(resource_type)), 'w') as f:
+                json.dump(getattr(self, resource_type), f)
+        return
 
     def load(self, resource_types=[]):
         if len(resource_types) == 0:
@@ -218,6 +220,17 @@ class TodoistSyncDataStore:
         if resource_types is None:
             resource_types = self.resource_types
         self.tokens.set(data['sync_token'], resource_types=resource_types)
+        self.tokens.save()
+
+        # Update data
+        for resource_type in resource_types:
+            for elem in data.get(resource_type, []):
+                # Find this in the current dataset
+                # Update (if already exists) or append
+                if existing_elem := next((x for x in getattr(self, resource_type) if x['id'] == elem['id']), None):
+                    existing_elem.update(elem)
+                else:
+                    getattr(self, resource_type).append(elem)
         self.save(resource_types=resource_types)
         return
 
@@ -302,8 +315,6 @@ class TodoistSyncAPI:
         
         # Serialize response and write to local file
         data = json.loads(res.text)
-        write_local_data(data, CACHE_PATH, overwrite=sync_token == '*')
-        
         return data
 
     def push(self, commands=None):

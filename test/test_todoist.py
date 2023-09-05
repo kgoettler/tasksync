@@ -20,6 +20,10 @@ def store():
 def token_manager():
     return SyncTokenManager(basedir=DATADIR)
 
+@pytest.fixture
+def provider():
+    return TodoistProvider()
+
 class TestSyncToken:
 
     def test_create(self):
@@ -118,4 +122,11 @@ class TestTodoistModels:
 
     def test_from_todoist(self, store : TodoistSyncDataStore):
         item = TodoistSyncTask.from_todoist(store.items[-1])
+        assert True
+
+
+class TestTodoistProvider:
+
+    def test_pull(self, provider):
+        res = provider.pull()
         assert True
