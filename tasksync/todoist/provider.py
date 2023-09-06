@@ -73,6 +73,7 @@ class TodoistProvider:
 
         # Get only those taskwarrior tasks with Todoist IDs
         known_ids = set((task['todoist'] for task in tw.tasks))
+        breakpoint()
         if None in known_ids:
             known_ids.remove(None)
         for todoist_task in self.store.find_all('items'):
@@ -166,8 +167,8 @@ def update_from_todoist(tw : TaskWarrior, todoist_task : TodoistSyncTaskDict, st
     
     # Update project
     if project := store.find('projects', id=todoist_task['project_id']):
-        if task['project'] != project:
-            task['project'] = project
+        if task['project'] != project['name']:
+            task['project'] = project['name']
     
     # Update priority
     tw_priority = 0 if task['priority'] is None else TaskwarriorPriority[task['priority']].value

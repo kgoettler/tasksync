@@ -108,11 +108,11 @@ class TestSyncTokenManager:
         assert all([isinstance(token, SyncToken) for token in tokens])
         assert all([token.token == value for token in tokens])
 
-    def test_write(self, token_manager):
+    def test_save(self, token_manager):
         basedir = join(DATADIR, 'test')
         os.makedirs(basedir, exist_ok=True)
         token_manager.file = join(basedir, 'sync_tokens.json')
-        token_manager.write()
+        token_manager.save()
 
         # Read it back in
         token_manager_test = SyncTokenManager(basedir)

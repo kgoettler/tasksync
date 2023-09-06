@@ -1,6 +1,6 @@
 [
   {
-    "added_at": "2023-01-01T01:00:00.000000Z",
+    "added_at": "2023-01-01T01:00:00Z",
     "added_by_uid": "123",
     "assigned_by_uid": null,
     "checked": false,
@@ -24,7 +24,7 @@
     "user_id": "00000000"
   },
   {
-    "added_at": "2023-01-01T02:00:00.000000Z",
+    "added_at": "2023-01-01T02:00:00Z",
     "added_by_uid": "123",
     "assigned_by_uid": null,
     "checked": false,
@@ -54,7 +54,7 @@
     "user_id": "00000000"
   },
   {
-    "added_at": "2023-01-01T03:00:00.000000Z",
+    "added_at": "2023-01-01T03:00:00Z",
     "added_by_uid": "123",
     "assigned_by_uid": null,
     "checked": false,
@@ -84,7 +84,7 @@
     "user_id": "00000000"
   },
   {
-    "added_at": "2023-01-01T04:00:00.000000Z",
+    "added_at": "2023-01-01T04:00:00Z",
     "added_by_uid": "123",
     "assigned_by_uid": null,
     "checked": false,
@@ -95,7 +95,7 @@
     "day_order": -1,
     "description": "",
     "due": {
-      "date": "2023-01-04T13:00:00.000000Z",
+      "date": "2023-01-04T13:00:00Z",
       "is_recurring": false,
       "lang": "en",
       "string": "4 Jan",
