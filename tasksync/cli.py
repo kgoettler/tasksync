@@ -10,6 +10,7 @@ import socket
 import subprocess
 import sys
 
+from tasksync import __version__
 from tasksync.server.client import TasksyncClient
 
 SOCKET_PATH = '/tmp/tasksync'
@@ -22,11 +23,18 @@ class TasksyncCLI:
     def __init__(self):
         self.client = TasksyncClient()
 
-    def parse_args(self):
-        parser = argparse.ArgumentParser(
+        # Setup argument parser
+        self.parser = argparse.ArgumentParser(
             description='tasksync: start/stop/status of the tasksync server',
         )
-        _subparsers = parser.add_subparsers()
+        self.parser.add_argument(
+            '-v',
+            '--version',
+            action='store_true',
+            default=False,
+            help='print version',
+        )
+        _subparsers = self.parser.add_subparsers()
         subparsers = []
         for cmd in ['start', 'stop', 'status']:
             subparsers.append(_subparsers.add_parser(
@@ -34,7 +42,9 @@ class TasksyncCLI:
                 help='{} the tasksync service'.format(cmd),
             ))
             subparsers[-1].set_defaults(func=getattr(self, cmd))
-        return parser.parse_args()
+
+    def parse_args(self):
+        return self.parser.parse_args()
 
     def get_server_pid(self) -> int | None:
         try:
@@ -80,7 +90,13 @@ class TasksyncCLI:
 def main():
     cli = TasksyncCLI()
     args = cli.parse_args()
-    sys.exit(args.func())
+    if args.version:
+        print(__version__)
+    elif not hasattr(args, 'func'):
+        cli.parser.print_help()
+    else:
+        sys.exit(args.func())
+    sys.exit(0)
 
 if __name__ == '__main__':
     main()

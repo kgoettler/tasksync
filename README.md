@@ -32,9 +32,14 @@ chmod +x $HOME/.task/hooks/on-modify-todoist.py
 ## To Do
 
 - [x] Support for adding, deleting, and modifying tasks
-- [x] Implement unit tests
 - [x] Support for due dates
 - [x] Support for projects
-- [ ] Support for subtasks
-- [ ] Formalize sync tools
+- [x] Improved CLI for interacting with tasksync server
+- [ ] Implement sync tool (-> Todoist)
+- [ ] Implement sync tool (-> Taskwarrior)
+- [ ] Formalize logging by tasksync server
 
+### Maybes
+
+- [ ] Support for subtasks
+- [ ] Support for annotations
