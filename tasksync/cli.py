@@ -26,11 +26,14 @@ class TasksyncCLI:
         parser = argparse.ArgumentParser(
             description='tasksync: start/stop/status of the tasksync server',
         )
-        parser.add_argument(
-            'cmd',
-            type=str,
-            help='action to perform (start | stop | status)',
-        )
+        _subparsers = parser.add_subparsers()
+        subparsers = []
+        for cmd in ['start', 'stop', 'status']:
+            subparsers.append(_subparsers.add_parser(
+                cmd,
+                help='{} the tasksync service'.format(cmd),
+            ))
+            subparsers[-1].set_defaults(func=getattr(self, cmd))
         return parser.parse_args()
 
     def get_server_pid(self) -> int | None:
@@ -39,7 +42,7 @@ class TasksyncCLI:
             pid = self.client.status()
             self.client.close()
             return int(pid)
-        except:
+        except Exception as _:
             return None
 
     def start(self) -> int:
@@ -77,15 +80,7 @@ class TasksyncCLI:
 def main():
     cli = TasksyncCLI()
     args = cli.parse_args()
-    if args.cmd == 'start':
-        res = cli.start()
-    elif args.cmd == 'stop':
-        res = cli.stop()
-    elif args.cmd == 'status':
-        res = cli.status()
-    else:
-        raise RuntimeError('{} not a recognized command'.format(args.cmd))
-    sys.exit(res)
+    sys.exit(args.func())
 
 if __name__ == '__main__':
     main()
