@@ -1,6 +1,3 @@
-#from tasksync.server.client import TasksyncClient
-#from tasksync.server.server import TasksyncServer
-
 import socket
 import pickle
 from typing import Any
@@ -9,6 +6,7 @@ SOCKET_PATH = '/tmp/tasksync'
 SERVER_TIMEOUT = 10
 CONNECTION_TIMEOUT = 5
 MAX_BUFFER_SIZE = 1024
+
 
 def send_ack(connection : socket.socket):
     connection.sendall(bool(True).to_bytes(1, 'little'))

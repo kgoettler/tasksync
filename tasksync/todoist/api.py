@@ -182,7 +182,7 @@ class TodoistSync:
     def push(self, commands=None):
         # TODO: Perform pull here to update store?
         return self.api.push(commands=commands)
-
+    
 class TodoistSyncDataStore:
     '''Local data store for managing interactions with the Todoist Sync API'''
     items : list

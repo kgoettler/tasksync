@@ -12,7 +12,6 @@ import sys
 
 from tasksync.todoist.api import TodoistSync
 
-
 SOCKET_PATH = '/tmp/tasksync'
 PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
 LOGFILE = join(os.environ["HOME"], 'tasksync.log')

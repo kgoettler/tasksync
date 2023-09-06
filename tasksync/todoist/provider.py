@@ -109,6 +109,10 @@ class TodoistProvider:
         self.commands.clear()
         return
 
+    @property 
+    def updated(self):
+        return len(self.commands) > 0
+
 def create_from_todoist(tw : TaskWarrior, todoist_task : TodoistSyncTaskDict, store : TodoistSyncDataStore) -> Task:
     out : Task = Task(
         tw,

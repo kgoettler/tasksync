@@ -1,6 +1,8 @@
 import os
 import socket
 import pickle
+import time
+import sys
 
 from tasksync.server import (
     SOCKET_PATH,
@@ -26,24 +28,36 @@ class TasksyncClient:
     
     def on_add(self, task_str: str) -> str:
         data = {
-            'type': 'on-add',
+            'method': 'on-add',
             'args': [
                 task_str,
             ]
         }
-        return self.send(data)
+        return self._send(data)
     
     def on_modify(self, task_str_old : str, task_str_new : str) -> str:
         data = {
-            'type': 'on-modify',
+            'method': 'on-modify',
             'args': [
                 task_str_old,
                 task_str_new,
             ]
         }
-        return self.send(data)
-
-    def send(self, data) -> str:
+        return self._send(data)
+    
+    def status(self) -> str:
+        data = {
+            'method': 'status',
+        }
+        return self._send(data)
+    
+    def stop(self) -> str:
+        data = {
+            'method': 'stop',
+        }
+        return self._send(data)
+    
+    def _send(self, data) -> str:
 
         # Send data
         send_data(self.client, data)
@@ -60,7 +74,7 @@ class TasksyncClient:
 if __name__ == '__main__':
     client = TasksyncClient()
     client.connect()
-    data = {'name': 'ken'}
-    res = client.send(data)
+    data = {'method': 'status'}
+    res = client._send(data)
     print(res)
     client.close()
