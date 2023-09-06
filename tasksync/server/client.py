@@ -15,10 +15,6 @@ class TasksyncClient:
 
     def __init__(self, socket_path=SOCKET_PATH):
         self.socket_path = socket_path
-        if not os.path.exists(self.socket_path):
-            raise FileNotFoundError(
-                'No socket found at {}. Is the server running?'.format(self.socket_path)
-            )
 
     def connect(self):
         self.client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

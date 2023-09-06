@@ -52,9 +52,6 @@ class TasksyncServer:
         self.server.settimeout(self.server_timeout)
         self.server.bind(self.socket_path)
 
-        # Allocate list for storing todoist commands
-        self.commands = []
-
     def start(self):
         # Listen for incoming connections
         self.server.listen(1)
