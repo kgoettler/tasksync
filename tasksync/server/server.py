@@ -21,7 +21,6 @@ from tasksync.todoist.provider import TodoistProvider
 
 class TasksyncServer:
 
-
     def __init__(self, 
                  socket_path : str = SOCKET_PATH,
                  server_timeout: int = SERVER_TIMEOUT,

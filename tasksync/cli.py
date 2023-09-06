@@ -10,102 +10,79 @@ import socket
 import subprocess
 import sys
 
-from tasksync.todoist.api import TodoistSync
+from tasksync.server.client import TasksyncClient
 
 SOCKET_PATH = '/tmp/tasksync'
 PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
 LOGFILE = join(os.environ["HOME"], 'tasksync.log')
 
-def check_tasksync_running() -> bool:
-    try:
-        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        client.connect(SOCKET_PATH)
-    except ConnectionRefusedError:
-        return False
-    return True
+class TasksyncCLI:
+    client : TasksyncClient
 
-def get_tasksync_pid() -> int | None:
-    if not exists(PIDFILE):
-        return
-    with open(PIDFILE, 'r') as f:
-        pid = f.read()
-        if pid == '':
-            return None
-        return int(pid)
+    def __init__(self):
+        self.client = TasksyncClient()
 
-def start() -> int:
-    '''
-    Start the Tasksync server
-    '''
-    if _ := get_tasksync_pid():
-        print('tasksync is already running')
-        return 1
-    logfile = open(LOGFILE, 'w+')
-    res = subprocess.Popen([
-        'python3',
-        '-m',
-        'tasksync.server.server',
-    ], stdout=logfile)
-    with open(PIDFILE, 'w') as f:
-        f.write('{}'.format(res.pid))
-    print('tasksync started')
-    return 0
+    def parse_args(self):
+        parser = argparse.ArgumentParser(
+            description='tasksync: start/stop/status of the tasksync server',
+        )
+        parser.add_argument(
+            'cmd',
+            type=str,
+            help='action to perform (start | stop | status)',
+        )
+        return parser.parse_args()
 
-def stop() -> int:
-    '''
-    Stop the Tasksync server
-    '''
-    if pid := get_tasksync_pid():
+    def get_server_pid(self) -> int | None:
         try:
-            os.kill(pid, signal.SIGTERM)
-            print('tasksync stopped')
-        except ProcessLookupError:
-            print('tasksync is not running')
-        if exists(PIDFILE):
-            os.remove(PIDFILE)
+            self.client.connect()
+            pid = self.client.status()
+            self.client.close()
+            return int(pid)
+        except:
+            return None
+
+    def start(self) -> int:
+        if self.get_server_pid():
+            print('tasksync is already running')
+            return 1
+        logfile = open(LOGFILE, 'w+')
+        res = subprocess.Popen([
+            'python3',
+            '-m',
+            'tasksync.server.server',
+        ], stdout=logfile)
+        print('tasksync started')
         return 0
-    else:
-        print('tasksync is not running')
-        return 1
     
-def status() -> int:
-    '''
-    Print whether the Tasksync server is running
-    '''
-    if pid := get_tasksync_pid():
-        print('tasksync is running with pid {}'.format(pid))
-    else:
-        print('tasksync is not running')
-    return 0
 
-
-def pull() -> int:
-    '''
-    Run a complete sync of Todoist -> Taskwarrior
-    '''
-    raise NotImplementedError('pull is not yet implemented')
-
-def push() -> int:
-    '''
-    Run a complete sync of Taskwarrior -> Todoist'''
-    raise NotImplementedError('push is not yet implemented')
+    def stop(self) -> int:
+        if self.get_server_pid():
+            self.client.connect()
+            self.client.stop()
+            self.client.close()
+            print('tasksync stopped')
+            return 0
+        else:
+            print('tasksync is not running')
+            return 1
+    
+    def status(self) -> int:
+        if pid := self.get_server_pid():
+            print('tasksync is running with pid {}'.format(pid))
+        else:
+            print('tasksync is not running')
+        return 0
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='tasksync: start/stop/status of the tasksync server',
-    )
-    parser.add_argument(
-        'cmd',
-        type=str,
-        help='action to perform (start | stop | status)',
-    )
-    args = parser.parse_args()
+    cli = TasksyncCLI()
+    args = cli.parse_args()
     if args.cmd == 'start':
-        res = start()
+        res = cli.start()
     elif args.cmd == 'stop':
-        res = stop()
+        res = cli.stop()
     elif args.cmd == 'status':
-        res = status()
+        res = cli.status()
     else:
         raise RuntimeError('{} not a recognized command'.format(args.cmd))
     sys.exit(res)
