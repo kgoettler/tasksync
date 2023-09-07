@@ -1,0 +1,2 @@
+include tasksync/VERSION
+include tasksync/hooks/*.py

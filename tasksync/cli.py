@@ -18,6 +18,11 @@ PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
 LOGFILE = join(os.environ["HOME"], 'tasksync.log')
 
 class TasksyncCLI:
+    _commands = [
+        'start',
+        'stop',
+        'status',
+    ]
     client : TasksyncClient
 
     def __init__(self):
@@ -36,7 +41,7 @@ class TasksyncCLI:
         )
         _subparsers = self.parser.add_subparsers()
         subparsers = []
-        for cmd in ['start', 'stop', 'status']:
+        for cmd in self._commands:
             subparsers.append(_subparsers.add_parser(
                 cmd,
                 help='{} the tasksync service'.format(cmd),
