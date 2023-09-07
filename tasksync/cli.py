@@ -12,6 +12,7 @@ import sys
 
 from tasksync import __version__
 from tasksync.server.client import TasksyncClient
+from tasksync.server.server import TasksyncServer
 
 SOCKET_PATH = '/tmp/tasksync'
 PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
@@ -64,13 +65,43 @@ class TasksyncCLI:
         if self.get_server_pid():
             print('tasksync is already running')
             return 1
-        logfile = open(LOGFILE, 'w+')
-        res = subprocess.Popen([
-            'python3',
-            '-m',
-            'tasksync.server.server',
-        ], stdout=logfile)
-        print('tasksync started')
+        logfile = open(LOGFILE, 'a+')
+
+        # Do first fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError as e:
+            print("fork #1 failed: %d (%s)" % (e.errno, e.strerror))
+            sys.exit(1)
+
+        os.chdir('/')
+        os.setsid()
+        os.umask(0)
+
+        # Do second fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError as e:
+            print("fork #2 failed: %d (%s)" % (e.errno, e.strerror))
+            sys.exit(1)
+
+        # redirect standard file descriptors
+        sys.stdout.flush()
+        sys.stderr.flush()
+        si = open('/dev/null', 'r')
+        so = logfile
+        se = logfile
+        os.dup2(si.fileno(), sys.stdin.fileno())
+        os.dup2(so.fileno(), sys.stdout.fileno())
+        os.dup2(se.fileno(), sys.stderr.fileno())
+
+        pid = os.getpid()
+        server = TasksyncServer()
+        server.start()
         return 0
     
 
@@ -88,9 +119,10 @@ class TasksyncCLI:
     def status(self) -> int:
         if pid := self.get_server_pid():
             print('tasksync is running with pid {}'.format(pid))
+            return 0
         else:
             print('tasksync is not running')
-        return 0
+            return 1
 
 def main():
     cli = TasksyncCLI()
