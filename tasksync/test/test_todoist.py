@@ -6,9 +6,15 @@ from os.path import dirname, join
 import os
 import datetime
 
+from tasksync.todoist.adapter import (
+    move_item,
+)
+from tasksync.taskwarrior.models import TaskwarriorStatus
 from tasksync.todoist.api import SyncToken, SyncTokenManager, TodoistSyncDataStore
 from tasksync.todoist.models import TodoistSyncTask
 from tasksync.todoist.provider import TodoistProvider
+
+from test_data import get_task
 
 DATADIR = join(dirname(__file__), 'data')
 
@@ -130,3 +136,130 @@ class TestTodoistProvider:
     def test_pull(self, provider):
         res = provider.pull()
         assert True
+
+    def test_on_add(self, provider):
+        task = get_task()
+        task_json, feedback = provider.on_add(task)
+        assert feedback == 'Todoist: item created'
+        assert len(provider.commands) == 1
+    
+    def test_on_modify(self, provider):
+        task_old = get_task()
+        task_old.project = None
+        task_old.section = None
+        task_new = get_task()
+        task_new.description = 'This is a new description'
+        task_new.project = 'Personal'
+        task_new.section = 'Home'
+        task_new.status = TaskwarriorStatus.COMPLETED
+        task_json, feedback = provider.on_modify(task_old, task_new)
+        assert feedback == 'Todoist: item updated, moved, and completed'
+    
+    def test_on_modify_delete(self, provider):
+        task_old = get_task()
+        task_new = get_task()
+        task_new.description = 'This is a new description'
+        task_new.status = TaskwarriorStatus.DELETED
+        task_json, feedback = provider.on_modify(task_old, task_new)
+        assert feedback == 'Todoist: item updated and deleted'
+    
+    def test_on_modify_uncomplete(self, provider):
+        task_old = get_task()
+        task_old.status = TaskwarriorStatus.COMPLETED
+        task_new = get_task()
+        task_new.status = TaskwarriorStatus.PENDING
+        task_json, feedback = provider.on_modify(task_old, task_new)
+        assert feedback == 'Todoist: item uncompleted'
+    
+    def test_on_modify_noop(self, provider):
+        task_old = get_task()
+        task_new = get_task()
+        task_json, feedback = provider.on_modify(task_old, task_new)
+        assert feedback == 'Todoist: update not required'
+
+
+class TestTodoistAdapter:
+
+    def test_move_project_00(self, store):
+        task_old= get_task()
+        task_old.project = None
+        task_new = get_task()
+        task_new.project = None
+
+        ops = move_item(task_old, task_new, store)
+        assert ops[0]['args']['project_id'] == '1000000000'
+
+    def test_move_project_01(self, store):
+        task_old= get_task()
+        task_old.project = None
+        task_new = get_task()
+        task_new.project = 'Personal'
+
+        ops = move_item(task_old, task_new, store)
+        assert ops[0]['args']['project_id'] == '1000000001'
+
+    def test_move_project_10(self, store):
+        task_old = get_task()
+        task_old.project = 'Personal'
+        task_new = get_task()
+        task_new.project = None
+
+        ops = move_item(task_old, task_new, store)
+        assert ops[0]['args']['project_id'] == '1000000000'
+
+    def test_move_project_11(self, store):
+        task_old = get_task()
+        task_old.project = 'Inbox'
+        task_new = get_task()
+        task_new.project = 'Personal'
+
+        ops = move_item(task_old, task_new, store)
+        assert ops[0]['args']['project_id'] == '1000000001'
+    
+    def test_move_project_noop(self, store):
+        task_old = get_task()
+        task_old.project = 'Personal'
+        task_new = get_task()
+        task_new.project = 'Personal'
+
+        ops = move_item(task_old, task_new, store)
+        assert len(ops) == 0
+
+    def test_move_to_section_within_project(self, store):
+        task_old = get_task()
+        task_old.project = 'Inbox'
+        task_old.section = None
+        task_new = get_task()
+        task_new.project = 'Inbox'
+        task_new.section = 'Recents'
+
+        ops = move_item(task_old, task_new, store)
+        assert 'project_id' not in ops[0]['args']
+        assert ops[0]['args']['section_id'] == '100000000'
+
+    def test_move_from_section_within_project(self, store):
+        task_old = get_task()
+        task_old.project = 'Inbox'
+        task_old.section = 'Recents'
+        task_new = get_task()
+        task_new.project = 'Inbox'
+        task_new.section = None
+
+        ops = move_item(task_old, task_new, store)
+        assert 'section_id' not in ops[0]['args']
+        assert ops[0]['args']['project_id'] == '1000000000'
+
+    def test_move_to_section_new(self, store):
+        task_old = get_task()
+        task_old.project = 'Inbox'
+        task_old.section = None
+        task_new = get_task()
+        task_new.project = 'Inbox'
+        task_new.section = 'New Section'
+
+        ops = move_item(task_old, task_new, store)
+        assert len(ops) == 2
+        assert ops[0]['type'] == 'section_add'
+        assert ops[1]['type'] == 'item_move'
+        assert ops[0]['temp_id'] == ops[1]['args']['section_id']
+

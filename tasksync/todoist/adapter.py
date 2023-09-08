@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import TypedDict
 from zoneinfo import ZoneInfo
 import os
@@ -15,18 +16,6 @@ from tasksync.todoist.api import TodoistSyncDataStore
 from tasksync.todoist.models import TodoistSyncDue
 
 TODOIST_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
-
-def date_from_taskwarrior(date : TasksyncDatetime, timezone : str) -> TodoistSyncDue:
-    out = TodoistSyncDue({
-        'timezone': timezone,
-        'is_recurring': False,
-    })
-    due_datetime = date.astimezone(ZoneInfo(timezone))
-    if due_datetime.hour == 0 and due_datetime.minute == 0:
-        out['date'] = date.strftime('%Y-%m-%d')
-    else:
-        out['date'] = date.strftime(TODOIST_DATETIME_FORMAT)
-    return out
 
 def add_item(task: TaskwarriorTask, store: TodoistSyncDataStore) -> list:
     ops = []
@@ -101,21 +90,50 @@ def move_item(task_old: TaskwarriorTask, task_new: TaskwarriorTask, store: Todoi
         }
     }
 
-    # Project 
-    if _check_update(task_old, task_new, 'project'):
+    # Project
+    project_id = None
+    # (0, 1) or (1, 1)
+    if task_new.project is not None:
         if project := store.find('projects', name=task_new.project):
-            data['args']['project_id'] = project['id']
+            project_id = project['id']
+            if task_old.project != task_new.project:
+                data['args']['project_id'] = project_id
         else:
             # Project does not exist -- we need to create it
-            ops.extend(create_project(name=task_new.project, temp_id=str(uuid.uuid4()))) # type: ignore
-            data['args']['project_id'] = ops[-1]['temp_id']
-    elif _check_remove(task_old, task_new, 'project'):
+            # Use temporary uuid so we can identify it in successive calls, if needed
+            project_id = str(uuid.uuid4())
+            ops.extend(create_project(name=task_new.project, temp_id=project_id)) # type: ignore
+            data['args']['project_id'] = project_id
+    else:
         if project := store.find('projects', name='Inbox'):
-            data['args']['project_id'] = project['id']
+            project_id = project['id']
+            data['args']['project_id'] = project_id
         else:
             raise RuntimeError(
                 'Attempting to move task to Inbox, but Inbox project not found in data store!'
             )
+
+    # Now do the same thing for the section 
+    if task_new.section is not None:
+        # Section was updated
+        if section := store.find('sections', name=task_new.section, project_id=project_id):
+            # if it exists in this project, supply section_id as argument
+            # instead of project_id
+            section_id = section['id']
+            data['args']['section_id'] = section['id']
+            if 'project_id' in data['args']:
+                del data['args']['project_id']
+        else:
+            # Section does not exist -- we need to create it
+            section_id = str(uuid.uuid4())
+            ops += create_section(name=task_new.section, temp_id=section_id, project_id=project_id) # type: ignore
+            data['args']['section_id'] = section_id
+    elif task_old.section is not None:
+        # From API docs:
+        # > to move an item from a section to no section, just use the
+        # > project_id parameter, with the project it currently belongs to as a
+        # > value.
+        data['args']['project_id'] = project_id
     if len(data['args']) > 1:
         ops.append(data)
     return ops
@@ -192,6 +210,38 @@ def create_project(name : str,
     ops.append(data) 
     return ops
 
+def create_section(name : str,
+                   temp_id : str,
+                   project_id : str,
+                   section_order : int | None = None
+                   ) -> list:
+    ops = []
+    data = {
+        'type': 'section_add',
+        'uuid': str(uuid.uuid4()),
+        'temp_id': temp_id,
+        'args': {
+            'name': name,
+            'project_id': project_id
+        }
+    }
+    if section_order:
+        data['args']['section_order'] = section_order
+    ops.append(data)
+    return ops
+
+def date_from_taskwarrior(date : TasksyncDatetime, timezone : str) -> TodoistSyncDue:
+    out = TodoistSyncDue({
+        'timezone': timezone,
+        'is_recurring': False,
+    })
+    due_datetime = date.astimezone(ZoneInfo(timezone))
+    if due_datetime.hour == 0 and due_datetime.minute == 0:
+        out['date'] = date.strftime('%Y-%m-%d')
+    else:
+        out['date'] = date.strftime(TODOIST_DATETIME_FORMAT)
+    return out
+
 def update_taskwarrior(sync_res, taskwarrior_uuids):
     '''
     Update Taskwarrior with Todoist IDs returned by the Sync API
@@ -210,6 +260,7 @@ def update_taskwarrior(sync_res, taskwarrior_uuids):
             ]
             res = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return
+
 
 def _check_update(task_old: TaskwarriorTask, task_new: TaskwarriorTask, attr : str) -> bool:
     oldval = getattr(task_old, attr)
