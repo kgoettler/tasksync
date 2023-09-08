@@ -67,7 +67,7 @@ class TasksyncClient:
         self.client.close()
         return
     
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     client = TasksyncClient()
     client.connect()
     data = {'method': 'status'}
