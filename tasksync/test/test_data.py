@@ -13,6 +13,7 @@ def get_taskwarrior_input(return_type='dict') -> TaskwarriorDict | str:
         "due": "20230828T040000Z",
         "entry": "20230827T212930Z",
         "modified": "20230827T212931Z",
+        "project": "Inbox",
         "priority": "M",
         "status": "pending",
         "timezone": "America/New_York",
