@@ -352,33 +352,3 @@ class TodoistSyncAPI:
     def clear_commands(self):
         self.commands.clear()
         return
-
-def write_local_data(data, outdir, overwrite=False):
-    data_file = join(outdir, 'data.json')
-    if overwrite:
-        with open(data_file, 'w') as f:
-            json.dump(data, f)
-    keys = ['items', 'labels', 'projects', 'sections']
-    for key in keys:
-        if key in data:
-            update_local_data(data[key], join(outdir, '{}.json'.format(key)))
-    return
-
-def update_local_data(data, data_file):
-    # Read
-    if exists(data_file):
-        with open(data_file, 'r') as f:
-            old_data = sorted(json.load(f), key=lambda x: x['id'])
-        # Update
-        for elem in data:
-            # Update (if already exists) or append
-            if old_elem := next((x for x in old_data if x["id"] == elem['id']), None):
-                old_elem.update(elem)
-            else:
-                old_data.append(elem)
-    else:
-        old_data = data
-    # Write
-    with open(data_file, 'w') as f:
-        json.dump(old_data, f)
-    return old_data
