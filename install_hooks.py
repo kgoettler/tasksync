@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import fileinput
 import os
 from os.path import basename, dirname, exists, join, splitext
 import sys
@@ -14,15 +15,15 @@ import tasksync
 
 hook_src = join(
     dirname(tasksync.__file__),
-    'hooks',
+    "hooks",
 )
 hook_dest = join(
-    os.environ.get('TASKDATA', join(os.environ['HOME'], '.task')),
-    'hooks',
+    os.environ.get("TASKDATA", join(os.environ["HOME"], ".task")),
+    "hooks",
 )
 
 for hookfile in os.listdir(join(hook_src)):
-    if not splitext(hookfile)[1] == '.py':
+    if not splitext(hookfile)[1] == ".py":
         continue
     link_src = join(hook_src, hookfile)
     link_dest = join(hook_dest, hookfile)
