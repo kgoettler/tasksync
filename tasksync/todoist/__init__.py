@@ -9,5 +9,4 @@ from .api import (
 from .models import (
     TodoistSyncDuration,
     TodoistSyncDue,
-    TodoistSyncTask,
 )
