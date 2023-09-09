@@ -1,4 +1,4 @@
-#!/Users/kgoettler/miniforge3/envs/main/bin/python3
+#!/usr/bin/env python3
 
 import traceback
 import sys
