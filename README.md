@@ -22,18 +22,6 @@ python3 tasksync/install_hooks.py
 
 4. (Optional) Run `tasksync pull` to pull all existing tasks from Todoist into Taskwarrior.
 
-## How it Works
-
-Tasksync runs as a background service which receives notifications about newly
-added or modified tasks from Taskwarrior and sends the corresponding updates to
-Todoist. Tasksync receives notifications via Taskwarrior hook scripts, and sends updates to Todoist via the Todoist Sync API. Updates are not sent synchronously; Tasksync only sends updates to Todoist after 10 seconds have elapsed without any updates from Taskwarrior. This provides several benefits:
-
-- Taskwarrior hooks are not blocked by network calls
-  - Runtime with synchronous network calls: ~800ms
-  - Runtime with tasksync: ~100ms
-- Todoist Sync API calls can be batched
-- Syncing can be disabled by simply shutting down the service
-
 ## Usage
 
 Once the hook scripts are installed, the Tasksync service can be controlled via the `tasksync` CLI:
@@ -60,6 +48,18 @@ optional arguments:
 - `tasksync stop` will stop the background service
 - `tasksync status` will indicate whether the background service is running
 - `tasksync pull` will immediately sync changes from Todoist -> Taskwarrior
+
+## How it Works
+
+Tasksync runs as a background service which receives notifications about newly
+added or modified tasks from Taskwarrior and sends the corresponding updates to
+Todoist. Tasksync receives notifications via Taskwarrior hook scripts, and sends updates to Todoist via the Todoist Sync API. Updates are not sent synchronously; Tasksync only sends updates to Todoist after 10 seconds have elapsed without any updates from Taskwarrior. This provides several benefits:
+
+- Taskwarrior hooks are not blocked by network calls
+  - Runtime with synchronous network calls: ~800ms
+  - Runtime with tasksync: ~100ms
+- Todoist Sync API calls can be batched
+- Syncing can be disabled by simply shutting down the service
 
 ## To Do
 
