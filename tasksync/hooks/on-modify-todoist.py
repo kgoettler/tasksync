@@ -2,10 +2,8 @@
 
 import traceback
 import sys
-import os
 
 from tasksync.server.client import TasksyncClient
-from tasksync.todoist.provider import TodoistProvider
 
 # Read TaskWarrior task from stdin
 task_str_old = sys.stdin.readline()
@@ -18,7 +16,7 @@ try:
     client.close()
 except ConnectionRefusedError:
     print(task_str_old)
-    print('Unable to connect to tasksync server - is it running?')
+    print("Unable to connect to tasksync server - is it running?")
     sys.exit(1)
 except Exception as e:
     print(task_str_new)

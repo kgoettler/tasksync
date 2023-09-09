@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass
-from typing import TypedDict, Union
-
-from tasksync.models import TasksyncDatetime
+from typing import TypedDict
 
 class TodoistSyncDuration(TypedDict):
     amount : float

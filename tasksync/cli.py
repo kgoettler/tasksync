@@ -2,51 +2,51 @@
 
 from __future__ import annotations
 
-from os.path import basename, dirname, exists, join
+from os.path import join
 import argparse
 import os
-import signal
-import socket
-import subprocess
 import sys
 
 from tasksync import __version__
 from tasksync.server.client import TasksyncClient
 from tasksync.server.server import TasksyncServer
 
-SOCKET_PATH = '/tmp/tasksync'
-PIDFILE = join(os.environ["HOME"], 'tasksync.pid')
-LOGFILE = join(os.environ["HOME"], 'tasksync.log')
+SOCKET_PATH = "/tmp/tasksync"
+PIDFILE = join(os.environ["HOME"], "tasksync.pid")
+LOGFILE = join(os.environ["HOME"], "tasksync.log")
+
 
 class TasksyncCLI:
     _commands = [
-        'start',
-        'stop',
-        'status',
+        "start",
+        "stop",
+        "status",
     ]
-    client : TasksyncClient
+    client: TasksyncClient
 
     def __init__(self):
         self.client = TasksyncClient()
 
         # Setup argument parser
         self.parser = argparse.ArgumentParser(
-            description='tasksync: start/stop/status of the tasksync server',
+            description="tasksync: start/stop/status of the tasksync server",
         )
         self.parser.add_argument(
-            '-v',
-            '--version',
-            action='store_true',
+            "-v",
+            "--version",
+            action="store_true",
             default=False,
-            help='print version',
+            help="print version",
         )
         _subparsers = self.parser.add_subparsers()
         subparsers = []
         for cmd in self._commands:
-            subparsers.append(_subparsers.add_parser(
-                cmd,
-                help='{} the tasksync service'.format(cmd),
-            ))
+            subparsers.append(
+                _subparsers.add_parser(
+                    cmd,
+                    help="{} the tasksync service".format(cmd),
+                )
+            )
             subparsers[-1].set_defaults(func=getattr(self, cmd))
 
     def parse_args(self):
@@ -63,9 +63,9 @@ class TasksyncCLI:
 
     def start(self) -> int:
         if self.get_server_pid():
-            print('tasksync is already running')
+            print("tasksync is already running")
             return 1
-        logfile = open(LOGFILE, 'a+')
+        logfile = open(LOGFILE, "a+")
 
         # Do first fork
         try:
@@ -76,7 +76,7 @@ class TasksyncCLI:
             print("fork #1 failed: %d (%s)" % (e.errno, e.strerror))
             sys.exit(1)
 
-        os.chdir('/')
+        os.chdir("/")
         os.setsid()
         os.umask(0)
 
@@ -92,7 +92,7 @@ class TasksyncCLI:
         # redirect standard file descriptors
         sys.stdout.flush()
         sys.stderr.flush()
-        si = open('/dev/null', 'r')
+        si = open("/dev/null", "r")
         so = logfile
         se = logfile
         os.dup2(si.fileno(), sys.stdin.fileno())
@@ -103,37 +103,38 @@ class TasksyncCLI:
         server = TasksyncServer()
         server.start()
         return 0
-    
 
     def stop(self) -> int:
         if self.get_server_pid():
             self.client.connect()
             self.client.stop()
             self.client.close()
-            print('tasksync stopped')
+            print("tasksync stopped")
             return 0
         else:
-            print('tasksync is not running')
+            print("tasksync is not running")
             return 1
-    
+
     def status(self) -> int:
         if pid := self.get_server_pid():
-            print('tasksync is running with pid {}'.format(pid))
+            print("tasksync is running with pid {}".format(pid))
             return 0
         else:
-            print('tasksync is not running')
+            print("tasksync is not running")
             return 1
+
 
 def main():
     cli = TasksyncCLI()
     args = cli.parse_args()
     if args.version:
         print(__version__)
-    elif not hasattr(args, 'func'):
+    elif not hasattr(args, "func"):
         cli.parser.print_help()
     else:
         sys.exit(args.func())
     sys.exit(0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
