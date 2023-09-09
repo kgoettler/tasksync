@@ -10,6 +10,7 @@ import sys
 from tasksync import __version__
 from tasksync.server.client import TasksyncClient
 from tasksync.server.server import TasksyncServer
+from tasksync.todoist.provider import TodoistProvider
 
 SOCKET_PATH = "/tmp/tasksync"
 PIDFILE = join(os.environ["HOME"], "tasksync.pid")
@@ -21,6 +22,7 @@ class TasksyncCLI:
         "start",
         "stop",
         "status",
+        "pull",
     ]
     client: TasksyncClient
 
@@ -122,6 +124,11 @@ class TasksyncCLI:
         else:
             print("tasksync is not running")
             return 1
+
+    def pull(self) -> int:
+        provider = TodoistProvider()
+        provider.pull(full=True)
+        return 0
 
 
 def main():

@@ -73,8 +73,9 @@ class TodoistProvider:
             self.commands += commands
         return task_new.to_taskwarrior(exclude_id=True), feedback
 
-    def pull(self) -> None:
-        _ = self.api.pull(resource_types=["items"])
+    def pull(self, full=False) -> None:
+        resource_types = None if full else ["items"]
+        _ = self.api.pull(resource_types=resource_types)
         tw = TaskWarrior()
         tw.overrides.update({"hooks": "off"})
 
@@ -84,9 +85,6 @@ class TodoistProvider:
             known_ids.remove(None)
         for todoist_task in self.store.find_all("items"):
             if todoist_task["id"] in known_ids:
-                if todoist_task["content"] == "Respond to Maddie":
-                    pass
-                    breakpoint()
                 # Update from todoist
                 task = update_from_todoist(tw, todoist_task, self.store)
                 if task:
@@ -101,7 +99,6 @@ class TodoistProvider:
                     self.store,
                 )
                 task.save()
-
         return
 
     def push(self) -> None:
@@ -452,7 +449,9 @@ def update_from_todoist(
     # Update due
     tw_due = None if task["due"] is None else task.serialize_due(task["due"])
     todoist_due = todoist_task["due"]
-    if todoist_due is not None and (todoist_due := TasksyncDatetime.from_todoist(todoist_due)):
+    if todoist_due is not None and (
+        todoist_due := TasksyncDatetime.from_todoist(todoist_due)
+    ):
         todoist_due = todoist_due.to_taskwarrior()
     if tw_due != todoist_due:
         task["due"] = None if todoist_due is None else task.deserialize_due(todoist_due)
