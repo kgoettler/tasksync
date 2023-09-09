@@ -5,10 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from os.path import exists, join
 import datetime
+import inspect
 import json
 import os
 import uuid
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Callable
 
 import requests
 
@@ -286,6 +287,22 @@ class TodoistSyncDataStore:
 #            return None
 #    return element
 
+import functools
+def add_optional_kwargs(func : Callable):
+    '''Log the date and time of a function'''
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        fsig = inspect.signature(func)
+        accepted_args = inspect.signature(func).parameters
+        data = func(*args, **{x:y for x,y in kwargs.items() if fsig.parameters[x].default is inspect._empty})
+        for key, value in kwargs.items():
+            if key not in accepted_args:
+                raise TypeError('{} got an unexpected keyword argument \'{}\''.format(func.__qualname__, key))
+            data['args'][key] = value
+        return data
+    return wrapper
+
 class TodoistSyncAPI:
     '''Main class for interacting with Todoist Sync API'''
     commands : list
@@ -352,3 +369,347 @@ class TodoistSyncAPI:
     def clear_commands(self):
         self.commands.clear()
         return
+    
+
+    @staticmethod
+    @add_optional_kwargs
+    def add_item(
+        content : str,
+        temp_id : str,
+        description : str | None = None,
+        project_id : str | None = None,
+        due : dict | None = None,
+        priority : int | None = None,
+        parent_id : str | None = None,
+        child_order : int | None = None,
+        section_id : str | None = None,
+        day_order : int | None = None,
+        collapsed : bool | None = None,
+        labels : list[str] | None = None,
+        assigned_by_uid : str | None = None,
+        responsible_uid : str | None = None,
+        auto_reminder : bool | None = None,
+        auto_parse_labels : bool | None = None,
+        duration : dict | None = None,
+    ) -> dict:
+        """Add a new item
+
+        Parameters
+        ----------
+        content : str
+            Text of the task
+        temp_id : str
+            Temporary uuid to refer to the task in successive API calls
+        description : str | None, optional
+            Description of the task
+        project_id : str | None, optional
+            ID of the project in which to place the task
+        due : dict | None, optional
+            Due date of the task
+        priority : int | None, optional
+            Priority of the task (1 = lowest, 4 = highest)
+        parent_id : str | None, optional
+            ID of parent task
+        child_order : int | None, optional
+            Order of the task in the parent
+        section_id : str | None, optional
+            ID of the section in which to place the task
+        day_order : int | None, optional
+            Order of the task inside the "Today" or "Next 7 days" views
+        collapsed : bool | None, optional
+            Whether hte task's subtasks are collapsed
+        labels : list[str] | None, optional
+            Task labels
+        assigned_by_uid : str | None, optional
+            ID of the user who assigns the task
+        responsible_uid : str | None, optional
+            ID of the user who is responsible for the task
+        auto_reminder : bool | None, optional
+            Whether to add a default reminder if due datetime is set
+        auto_parse_labels : bool | None, optional
+            Whether to autoparse labels from the task content
+        duration : dict | None, optional
+            Duration of the task 
+
+        Returns
+        -------
+        data : dict
+            API payload
+        """
+        data = {
+            'type': 'item_add',
+            'uuid': str(uuid.uuid4()),
+            'temp_id': temp_id,
+            'args': {
+                'content': content,
+            }
+        }
+        return data
+    
+    @staticmethod
+    @add_optional_kwargs
+    def modify_item(
+        id_ : str,
+        content : str | None = None,
+        description : str | None = None,
+        due : dict | None = None,
+        priority : int | None = None,
+        collapsed : bool | None = None,
+        labels : list[str] | None = None,
+        assigned_by_uid : str | None = None,
+        day_order : int | None = None,
+        duration : dict | None = None,
+    ) -> dict:
+        """Modify an item
+
+        Parameters
+        ----------
+        id_ : str
+            ID of the task
+        content : str | None, optional
+            Updated text of the task
+        description : str | None, optional
+            Update description of the task
+        due : dict | None, optional
+            Due date of the task; set to None to remove any existing due date
+        priority : int | None, optional
+            Priority; set to None to remove any priority
+        collapsed : bool | None, optional
+            Whether the task's subtasks are collapsed
+        labels : list[str] | None, optional
+            Update labels for task
+        assigned_by_uid : str | None, optional
+            Updated ID of the user who assigned the task
+            _description_, by default None
+        day_order : int | None, optional
+            Updated order of the task inside the "Today" or "Next 7 days" views
+        duration : dict | None, optional
+            Updated duration of the task
+
+        Returns
+        -------
+        data : dict
+            API payload
+        """
+        data = {
+            'type': 'item_update',
+            'uuid': str(uuid.uuid4()),
+            'args': {
+                'id': id_,
+            }
+        }
+        return data
+    
+    @staticmethod
+    @add_optional_kwargs
+    def move_item(
+        id_ : str,
+        parent_id : str | None = None,
+        section_id : str | None = None,
+        project_id : str | None = None,
+    ) -> dict:
+        """Move an item
+
+        Parameters
+        ----------
+        id_ : str
+            ID of the task
+        parent_id : str | None, optional
+            ID of the parent task to which the current task should be moved
+        section_id : str | None, optional
+            ID of the section to which the current task should be moved
+        project_id : str | None, optional
+            ID of the project to which the current task should be moved
+
+        Returns
+        -------
+        data : dict
+            API payload
+
+        Notes
+        -----
+        To move an item from a section to no section, just use the `project_id`
+        parameter with the project it currently belongs to as a value.
+        """
+        data = {
+            'type': 'item_move',
+            'uuid': str(uuid.uuid4()),
+            'args': {
+                'id': id_,
+            }
+        }
+        return data
+    
+
+    @staticmethod
+    @add_optional_kwargs
+    def delete_item(
+        id_ : str,
+    ) -> dict:
+        """Delete a task
+
+        Parameters
+        ----------
+        id_ : str
+            ID of the task to delete
+
+        Returns
+        -------
+        data : dict
+            API payload
+        """
+        data = {
+            'type': 'item_delete',
+            'uuid': str(uuid.uuid4()),
+            'args': {
+                'id': id_,
+            }
+        }
+        return data
+    
+    @staticmethod
+    @add_optional_kwargs
+    def complete_item(
+        id_ : str,
+        date_completed : str | None = None
+    ) -> dict:
+        """Complete a task
+
+        Parameters
+        ----------
+        id_ : str
+            ID of the task to complete
+        date_completed : str | None, optional
+            RFC3339-formatted datetime at which the task was completed. If None,
+            server will set the value to the current datetime.
+
+        Returns
+        -------
+        data : dict
+            API payload
+        """
+        data = {
+            'type': 'item_complete',
+            'uuid': str(uuid.uuid4()),
+            'args': {
+                'id': id_,
+            }
+        }
+        return data
+
+    @staticmethod
+    def uncomplete_item(
+        id_ : str,
+    ) -> dict:
+        """Uncomplete a task
+
+        Parameters
+        ----------
+        id_ : str
+            ID of the task to complete
+
+        Returns
+        -------
+        data : dict
+            API payload
+        """
+        data = {
+            'type': 'item_uncomplete',
+            'uuid': str(uuid.uuid4()),
+            'args': {
+                'id': id_,
+            }
+        }
+        return data
+
+    @staticmethod 
+    @add_optional_kwargs
+    def create_project(
+        name : str,
+        temp_id : str,
+        color : str | None = None,
+        parent_id : str | None = None,
+        child_order : int | None = None,
+        is_favorite : bool | None = None,
+        view_style : str | None = None
+    ) -> dict:
+        """Create a new project
+
+        Parameters
+        ----------
+        name : str
+            Name of the project
+        temp_id : str | None, optional
+            Temporary uuid to refer to the task in successive API calls
+        color : str | None, optional
+            Color of the project icon
+        parent_id : str | None, optional
+            ID of the parent project
+        child_order : int | None, optional
+            Order of the project
+        is_favorite : bool | None, optional
+            Whether the project is a favorite
+        view_style : str | None, optional
+            String value (list | board) indicating the way the project is
+            displayed within Todoist clients
+
+        Returns
+        -------
+        data : dict 
+            project_add payload
+        """
+        data = {
+            'type': 'project_add',
+            'uuid': str(uuid.uuid4()),
+            'temp_id': temp_id,
+            'args': {
+                'name': name,
+            }
+        }
+        return data
+
+    @staticmethod
+    @add_optional_kwargs
+    def create_section(
+        name : str,
+        temp_id : str,
+        project_id : str,
+        section_order : int | None = None
+    ) -> dict:
+        """Create a new section
+
+        Parameters
+        ----------
+        name : str
+            Section name
+        temp_id : str
+            Temporary UUID; used to refer to the section in subsequent calls
+        project_id : str
+            Project ID in which the section will be located
+        section_order : int | None, optional
+            Order in which the section should appear in the project
+
+        Returns
+        -------
+        data : dict
+            API payload
+        """
+        data = {
+            'type': 'section_add',
+            'uuid': str(uuid.uuid4()),
+            'temp_id': temp_id,
+            'args': {
+                'name': name,
+            }
+        }
+        return data
+    
+
+if __name__ == '__main__':
+
+    api = TodoistSyncAPI()
+    print(TodoistSyncAPI.add_item(
+        'New Item',
+        str(uuid.uuid4()),
+        project_id='1123',
+    ))
