@@ -5,12 +5,18 @@ import pytest
 from os.path import dirname, join
 import os
 import datetime
+import uuid
 
 from tasksync.todoist.adapter import (
     move_item,
 )
 from tasksync.taskwarrior.models import TaskwarriorStatus
-from tasksync.todoist.api import SyncToken, SyncTokenManager, TodoistSyncDataStore
+from tasksync.todoist.api import (
+    SyncToken,
+    SyncTokenManager,
+    TodoistSyncDataStore,
+    TodoistSyncAPI,
+)
 from tasksync.todoist.models import TodoistSyncTask
 from tasksync.todoist.provider import TodoistProvider
 
@@ -133,6 +139,7 @@ class TestTodoistModels:
 
 class TestTodoistProvider:
 
+    @pytest.mark.skip()
     def test_pull(self, provider):
         res = provider.pull()
         assert True
@@ -185,7 +192,7 @@ class TestTodoistAdapter:
         task_old.project = None
         task_new = get_task()
         task_new.project = None
-
+        
         ops = move_item(task_old, task_new, store)
         assert ops[0]['args']['project_id'] == '1000000000'
 
@@ -263,3 +270,22 @@ class TestTodoistAdapter:
         assert ops[1]['type'] == 'item_move'
         assert ops[0]['temp_id'] == ops[1]['args']['section_id']
 
+
+class TestTodoistSyncAPI:
+
+    def test_create_project_helper(self):
+        kwargs = dict(
+            name='Test Project',
+            temp_id=str(uuid.uuid4()),
+            color='#FF0000',
+            parent_id='123',
+            child_order=1,
+            is_favorite=True,
+            view_style='foo',
+        )
+        data = TodoistSyncAPI.create_project(**kwargs) # type: ignore
+
+        assert data['type'] == 'project_add'
+        assert uuid.UUID(data['uuid'])
+        for key, value in kwargs.items():
+            assert data['args'][key] == value

@@ -12,7 +12,6 @@ from tasksync.todoist.adapter import (
     delete_item,
     complete_item,
     uncomplete_item,
-    create_project,
     date_from_taskwarrior,
     TODOIST_DATETIME_FORMAT
 )
@@ -168,7 +167,7 @@ def test_move_item_new_project(old_task, new_task, store):
     new_task.project = 'Work'
     
     ops = move_item(old_task, new_task, store)
-    
+
     assert len(ops) == 2
     op = ops[0]
     assert op['type'] == 'project_add'
@@ -237,20 +236,3 @@ def test_uncomplete_item(old_task : TaskwarriorTask, new_task : TaskwarriorTask,
     assert op['args']['id'] == str(new_task.todoist)
 
 
-def test_create_project_helper():
-    kwargs = dict(
-        name='Test Project',
-        color='#FF0000',
-        parent_id='123',
-        child_order=1,
-        is_favorite=True,
-        view_style='foo',
-    )
-    ops = create_project(**kwargs) # type: ignore
-
-    assert len(ops) == 1
-    op = ops[0]
-    assert op['type'] == 'project_add'
-    assert uuid.UUID(op['uuid'])
-    for key, value in kwargs.items():
-        assert op['args'][key] == value
